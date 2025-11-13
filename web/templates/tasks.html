@@ -1,0 +1,1284 @@
+{% extends "base.html" %}
+
+{% block title %}Задачи - Video Maker{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-grad-start: #667eea;
+        --primary-grad-end: #764ba2;
+        --secondary-grad-start: #f093fb;
+        --secondary-grad-end: #f5576c;
+        --success-grad-start: #4facfe;
+        --success-grad-end: #00f2fe;
+        --error-grad-start: #fa709a;
+        --error-grad-end: #fee140;
+        --text-dark: #2d3748;
+        --text-light: #718096;
+        --bg-light: #f8f9fa;
+        --border-color: #e2e8f0;
+    }
+
+    .tasks-dashboard {
+        display: flex;
+        gap: 24px;
+        margin-top: 20px;
+    }
+    
+    .task-list-container {
+        flex: 1;
+        max-width: 420px;
+        background: linear-gradient(135deg, var(--primary-grad-start), var(--primary-grad-end));
+        border-radius: 16px;
+        padding: 20px;
+        height: 85vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    }
+    
+    .task-list-container::-webkit-scrollbar { width: 8px; }
+    .task-list-container::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+    .task-list-container::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.3); border-radius: 10px; }
+    
+    .task-list-container h2 {
+        color: white;
+        margin: 0 0 20px 0;
+        font-size: 24px;
+        font-weight: 600;
+    }
+    
+    .task-details-container {
+        flex: 2;
+        min-width: 0;
+        height: 85vh;
+        overflow-y: auto;
+        padding-right: 10px;
+    }
+    .task-details-container::-webkit-scrollbar { width: 8px; }
+    .task-details-container::-webkit-scrollbar-track { background: var(--bg-light); border-radius: 10px; }
+    .task-details-container::-webkit-scrollbar-thumb { background: #d1d8e0; border-radius: 10px; }
+
+    .task-item {
+        padding: 18px;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 12px;
+        margin-bottom: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid transparent;
+    }
+    
+    .task-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        border-left-color: var(--primary-grad-start);
+    }
+    
+    .task-item.active {
+        background: white;
+        border-left: 4px solid var(--secondary-grad-end);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    .task-item h4 {
+        margin: 0 0 10px 0;
+        color: var(--text-dark);
+        font-size: 16px;
+        font-weight: 600;
+        word-break: break-word;
+    }
+    
+    .task-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: white;
+    }
+    
+    .task-status.running { background: linear-gradient(135deg, var(--secondary-grad-start), var(--secondary-grad-end)); animation: pulse 2s infinite; }
+    .task-status.completed { background: linear-gradient(135deg, var(--success-grad-start), var(--success-grad-end)); }
+    .task-status.failed { background: linear-gradient(135deg, var(--error-grad-start), var(--error-grad-end)); }
+    .task-status.pending { background: linear-gradient(135deg, #ccc, #999); }
+    
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
+
+    .detail-block, .sub-task-block {
+        background: white;
+        padding: 24px;
+        border-radius: 16px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid var(--border-color);
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    .detail-block h3, .sub-task-block h4 {
+        margin-top: 0;
+        margin-bottom: 16px;
+        color: var(--text-dark);
+        font-size: 22px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .sub-task-block h4 { font-size: 18px; }
+
+    .ai-clips-section {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 2px solid #e0e0e0;
+    }
+
+    .ai-clips-section h5 {
+        margin-bottom: 15px;
+        color: var(--text-dark);
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .ai-clips-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+    }
+
+    .ai-clip-card {
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 16px;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .ai-clip-card:hover {
+        border-color: var(--primary-color);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transform: translateY(-1px);
+    }
+
+    .ai-clip-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #e8e8e8;
+        gap: 10px;
+    }
+
+    .ai-clip-card-header h5 {
+        margin: 0;
+        font-size: 13px;
+        color: var(--text-dark);
+        flex: 1;
+        word-break: break-word;
+        line-height: 1.4;
+        font-weight: 600;
+    }
+
+    .ai-clip-card-date {
+        font-size: 10px;
+        color: #888;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .ai-clip-card-info {
+        margin-bottom: 12px;
+    }
+
+    .ai-clip-card-info p {
+        margin: 6px 0;
+        font-size: 12px;
+        color: var(--text-color);
+        line-height: 1.4;
+    }
+
+    .ai-clip-card-info strong {
+        color: var(--text-dark);
+        font-weight: 600;
+    }
+
+    .ai-clip-card-actions {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .btn-small {
+        padding: 6px 10px;
+        font-size: 12px;
+        flex: 1;
+        min-width: 80px;
+        border-radius: 6px;
+    }
+
+    .ai-clip-card-subtasks {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #e8e8e8;
+    }
+
+    .btn-toggle-subtasks {
+        width: 100%;
+        padding: 8px;
+        background: #f0f0f0;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: background 0.2s;
+    }
+
+    .btn-toggle-subtasks:hover {
+        background: #e8e8e8;
+    }
+
+    .toggle-icon {
+        transition: transform 0.2s;
+        font-size: 10px;
+    }
+
+    .subtasks-content {
+        margin-top: 10px;
+        padding: 10px;
+        background: #fafafa;
+        border-radius: 6px;
+        animation: slideDown 0.3s ease-out;
+    }
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            max-height: 0;
+        }
+        to {
+            opacity: 1;
+            max-height: 500px;
+        }
+    }
+    
+    .shorts-settings-form {
+        margin-top: 12px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+    }
+    
+    .shorts-form-content {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .shorts-form-content h6 {
+        color: var(--text-dark);
+        font-size: 14px;
+        font-weight: 600;
+    }
+    
+    .shorts-form-content .form-group {
+        margin-bottom: 0;
+    }
+    
+    .shorts-form-content .form-group label {
+        font-size: 12px;
+        margin-bottom: 6px;
+        color: #666;
+    }
+    
+    .shorts-form-content .form-input,
+    .shorts-form-content .form-select {
+        font-size: 13px;
+        padding: 8px 12px;
+    }
+    
+    .shorts-form-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+    }
+    
+    .shorts-form-actions .btn {
+        flex: 1;
+    }
+
+    .subtask-item {
+        margin-bottom: 12px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .subtask-item:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+
+    .subtask-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+    }
+
+    .subtask-icon {
+        font-size: 14px;
+    }
+
+    .subtask-name {
+        flex: 1;
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--text-dark);
+    }
+
+    .subtask-header .task-status {
+        font-size: 10px;
+        padding: 2px 6px;
+    }
+
+    .subtask-message {
+        font-size: 11px;
+        color: var(--text-color);
+        margin: 4px 0;
+    }
+
+    .subtask-error {
+        font-size: 11px;
+        color: #d32f2f;
+        margin: 4px 0;
+    }
+
+    .progress-bar-small {
+        height: 4px;
+        background: #e0e0e0;
+        border-radius: 2px;
+        overflow: hidden;
+        margin: 6px 0;
+    }
+
+    .progress-bar-small .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        transition: width 0.3s ease;
+    }
+
+    .subtask-outputs {
+        margin-top: 6px;
+        font-size: 11px;
+    }
+
+    .subtask-outputs a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .subtask-outputs a:hover {
+        text-decoration: underline;
+    }
+
+    .subtask-empty {
+        font-size: 11px;
+        color: #999;
+        font-style: italic;
+        text-align: center;
+        padding: 10px;
+    }
+
+    .file-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+        margin-top: 12px;
+    }
+    
+    .file-list a {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 16px 20px;
+        background: var(--bg-light);
+        border-radius: 12px;
+        color: var(--text-dark);
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        border: 1px solid var(--border-color);
+    }
+
+    .file-list a:hover {
+        background: linear-gradient(135deg, var(--primary-grad-start), var(--primary-grad-end));
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+    }
+
+    .progress-bar { width: 100%; height: 8px; background: #e2e8f0; border-radius: 10px; overflow: hidden; margin-top: 8px; }
+    .progress-bar-fill {
+        width: 0%; height: 100%; background: linear-gradient(90deg, var(--primary-grad-start), var(--primary-grad-end)); transition: width 0.3s ease; border-radius: 10px;
+    }
+
+    .btn {
+        padding: 12px 24px; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;
+        background: linear-gradient(135deg, var(--primary-grad-start), var(--primary-grad-end)); color: white;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .status-message { padding: 14px 18px; border-radius: 10px; margin-top: 16px; font-weight: 500; border-left: 4px solid; }
+    .status-message.success { background: #d4edda; color: #155724; border-left-color: #28a745; }
+    .status-message.error { background: #f8d7da; color: #721c24; border-left-color: #dc3545; }
+    .status-message.info { background: #d1ecf1; color: #0c5460; border-left-color: #17a2b8; }
+
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; margin-bottom: 8px; color: #4a5568; font-weight: 600; }
+    .form-input, .form-select { width: 100%; padding: 12px 16px; border: 2px solid var(--border-color); border-radius: 10px; font-size: 15px; }
+    .form-input:focus, .form-select:focus { outline: none; border-color: var(--primary-grad-start); }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tasks-dashboard">
+    <div class="task-list-container" id="task-list">
+        <!-- Workflows will be loaded here -->
+    </div>
+    <div class="task-details-container" id="task-details">
+        <div class="detail-block">
+            <h3>👈 Выберите рабочий процесс</h3>
+            <p>Здесь будет показана подробная информация о выбранном процессе и его подзадачах.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const taskListContainer = document.getElementById('task-list');
+    const taskDetailsContainer = document.getElementById('task-details');
+    let currentWorkflows = [];
+    let selectedWorkflowId = null;
+
+    // --- Helper Functions ---
+    function escapeHtml(text) {
+        if (text === null || typeof text === 'undefined') return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function getStatusClass(status) {
+        const statusMap = { 'running': 'running', 'completed': 'completed', 'failed': 'failed', 'pending': 'pending' };
+        return statusMap[status.toLowerCase()] || '';
+    }
+
+    function isAttachedSubtask(subTaskName) {
+        /**
+         * Проверяет, является ли подзадача привязанной к файлу AI нарезки.
+         * Формат привязанной подзадачи: {type}_{system_prompt_id}_{user_prompt_id}_{timestamp}
+         * Пример: clipping_3bdf04d7-ed20-4e04-8571-f4885fd7287e_b15891d5-7851-480f-b6ac-389a574b4e0a_20251106_171205
+         */
+        const parts = subTaskName.split('_');
+        if (parts.length < 4) return false;
+        
+        const type = parts[0];
+        const validTypes = ['clipping', 'compilation', 'shorts_creation'];
+        if (!validTypes.includes(type)) return false;
+        
+        // Проверяем, что есть timestamp в конце (формат YYYYMMDD_HHMMSS)
+        const lastPart = parts[parts.length - 1];
+        const secondLastPart = parts[parts.length - 2];
+        const timestampPattern = /^\d{8}_\d{6}$/;
+        if (timestampPattern.test(secondLastPart + '_' + lastPart)) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    function getSubTaskTitle(subTaskName) {
+        const titles = {
+            'initial_processing': '1. Начальная обработка',
+            'transcription': '2. Транскрипция (Colab)',
+            'ai_clip_generation': '3. Генерация AI-нарезки',
+            'clipping': '4. Нарезка клипов',
+            'compilation': '5. Создание компиляции',
+            'shorts_creation': '6. Создание Shorts'
+        };
+        return titles[subTaskName] || subTaskName;
+    }
+
+    // --- Rendering Functions ---
+
+    function renderTaskList(workflows) {
+        currentWorkflows = workflows;
+        taskListContainer.innerHTML = '<h2>🚀 Рабочие процессы</h2>';
+        if (workflows.length === 0) {
+            taskListContainer.innerHTML += '<div class="empty-state"><p>Нет активных процессов.</p></div>';
+            return;
+        }
+
+        workflows.forEach(workflow => {
+            const taskItem = document.createElement('div');
+            taskItem.className = `task-item ${workflow.task_id === selectedWorkflowId ? 'active' : ''}`;
+            taskItem.dataset.taskId = workflow.task_id;
+            
+            taskItem.innerHTML = `
+                <h4>${escapeHtml(workflow.name)}</h4>
+                <div class="task-meta">
+                    <span class="task-status ${getStatusClass(workflow.status)}">${escapeHtml(workflow.status)}</span>
+                </div>
+            `;
+            taskItem.addEventListener('click', () => {
+                selectedWorkflowId = workflow.task_id;
+                renderTaskList(currentWorkflows);
+                renderTaskDetails(workflow.task_id);
+            });
+            taskListContainer.appendChild(taskItem);
+        });
+    }
+
+    function renderTaskDetails(workflowId) {
+        fetch(`/api/tasks/${workflowId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    taskDetailsContainer.innerHTML = `<div class="detail-block"><h3>Ошибка</h3><p>${escapeHtml(data.error)}</p></div>`;
+                    return;
+                }
+                const workflow = data.task;
+                
+                // Main Workflow Block
+                let detailsHtml = `
+                    <div class="detail-block">
+                        <h3>${escapeHtml(workflow.name)}</h3>
+                        <p><strong>ID:</strong> <code>${escapeHtml(workflow.task_id)}</code></p>
+                        <p><strong>Статус:</strong> <span class="task-status ${getStatusClass(workflow.status)}">${escapeHtml(workflow.status)}</span></p>
+                        ${workflow.error ? `<div class="status-message error"><strong>Ошибка:</strong> ${escapeHtml(workflow.error)}</div>` : ''}
+                    </div>
+                `;
+
+                // Render Sub-Tasks (скрываем привязанные подзадачи - они показываются в карточках)
+                const sortedSubTasks = Object.entries(workflow.sub_tasks).sort((a, b) => getSubTaskTitle(a[0]).localeCompare(getSubTaskTitle(b[0])));
+
+                for (const [subTaskName, subTask] of sortedSubTasks) {
+                    // Пропускаем привязанные подзадачи - они отображаются в карточках
+                    if (isAttachedSubtask(subTaskName)) {
+                        continue;
+                    }
+                    detailsHtml += renderSubTask(workflow, subTaskName, subTask);
+                }
+
+                taskDetailsContainer.innerHTML = detailsHtml;
+                attachEventListeners(workflow);
+            });
+    }
+
+    function renderSubTask(workflow, subTaskName, subTask) {
+        let filesHtml = '';
+        
+        // Для ai_clip_generation показываем карточки вместо простых ссылок
+        if (subTaskName === 'ai_clip_generation' && workflow.artifacts && workflow.artifacts.ai_clips_files) {
+            const files = workflow.artifacts.ai_clips_files;
+            if (files.length > 0) {
+                // Карточки будут добавлены в actionsHtml, здесь не нужно
+                filesHtml = ''; // Очищаем, чтобы не показывать дублирующую информацию
+            }
+        } else if (subTask.outputs) {
+            // Для остальных подзадач - стандартная логика
+            for (const [key, value] of Object.entries(subTask.outputs)) {
+                if (typeof value === 'string' && value.includes('\\')) { // Likely a file path
+                    const fileName = value.split('\\').pop();
+                    filesHtml += `<a href="/api/files/any/${escapeHtml(fileName)}" target="_blank">${escapeHtml(key)}: ${escapeHtml(fileName)}</a>`;
+                } else if (Array.isArray(value)) {
+                     filesHtml += `<p><strong>${key}:</strong> ${value.length} элементов</p>`;
+                }
+            }
+        }
+
+        let actionsHtml = '';
+        // --- Conditional Actions ---
+        if (subTaskName === 'initial_processing' && subTask.status === 'completed' && !workflow.sub_tasks.transcription) {
+            actionsHtml += `<p class="status-message info">Ожидание транскрипции от Google Colab...</p>`;
+        }
+        // Кнопка для повторной попытки транскрипции при ошибке или зависании
+        if (subTaskName === 'transcription' && (subTask.status === 'failed' || subTask.status === 'running')) {
+            actionsHtml += `
+                <button class="btn btn-retry-transcription" data-task-id="${escapeHtml(workflow.task_id)}" style="margin-top: 10px;">
+                    🔄 Попробовать еще раз
+                </button>
+            `;
+        }
+        // Показываем форму всегда после завершения транскрипции
+        if (subTaskName === 'transcription' && subTask.status === 'completed') {
+            actionsHtml += `
+                <div class="form-group">
+                    <label for="ai-system-prompt">Системный промпт:</label>
+                    <select id="ai-system-prompt" class="form-select"></select>
+                </div>
+                <div class="form-group">
+                    <label for="ai-user-prompt">Пользовательский промпт:</label>
+                    <select id="ai-user-prompt" class="form-select"></select>
+                </div>
+                <button class="btn" id="btn-generate-ai-clips">✨ Сгенерировать AI нарезку</button>
+            `;
+            const aiClipGeneration = workflow.sub_tasks.ai_clip_generation;
+            if (aiClipGeneration && aiClipGeneration.status === 'failed') {
+                actionsHtml += `<p class="status-message error" style="margin-top: 10px;">Предыдущая попытка завершилась с ошибкой. Попробуйте изменить промпты.</p>`;
+            }
+        }
+        // Для ai_clip_generation показываем карточки с файлами после статуса
+        if (subTaskName === 'ai_clip_generation' && workflow.artifacts && workflow.artifacts.ai_clips_files && workflow.artifacts.ai_clips_files.length > 0) {
+            const files = workflow.artifacts.ai_clips_files;
+            actionsHtml += '<div class="ai-clips-section">';
+            actionsHtml += `<h5 style="margin-top: 20px; margin-bottom: 15px;">Созданные файлы AI нарезки (${files.length}):</h5>`;
+            actionsHtml += '<div class="ai-clips-cards">';
+            
+            // Функция для генерации имени подзадачи (аналогично Python функции)
+            function generateSubtaskName(fileInfo, subtaskType) {
+                const systemPromptId = fileInfo.system_prompt_id || 'unknown';
+                const userPromptId = fileInfo.user_prompt_id || 'unknown';
+                const createdAt = fileInfo.created_at || Date.now() / 1000;
+                const date = new Date(createdAt * 1000);
+                const timestampStr = date.getFullYear().toString() + 
+                    String(date.getMonth() + 1).padStart(2, '0') + 
+                    String(date.getDate()).padStart(2, '0') + '_' +
+                    String(date.getHours()).padStart(2, '0') + 
+                    String(date.getMinutes()).padStart(2, '0') + 
+                    String(date.getSeconds()).padStart(2, '0');
+                return `${subtaskType}_${systemPromptId}_${userPromptId}_${timestampStr}`;
+            }
+            
+            files.forEach((fileInfo, index) => {
+                const fileName = escapeHtml(fileInfo.filename);
+                const systemPrompt = escapeHtml(fileInfo.system_prompt_name || fileInfo.system_prompt_id);
+                const userPrompt = escapeHtml(fileInfo.user_prompt_name || fileInfo.user_prompt_id);
+                const createdDate = fileInfo.created_at ? new Date(fileInfo.created_at * 1000).toLocaleString('ru-RU') : 'Неизвестно';
+                const subTasks = fileInfo.sub_tasks || {};
+                
+                // Генерируем ID для раскрывающегося блока (используем путь к файлу для уникальности)
+                const cardId = `card-${workflow.task_id}-${index}-${fileInfo.path.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50)}`;
+                
+                // Формируем HTML для подзадач
+                let subtasksHtml = '';
+                const subtaskTypes = {
+                    'clipping': { name: 'Нарезка клипов', icon: '✂️' },
+                    'compilation': { name: 'Компиляция', icon: '🎬' },
+                    'shorts_creation': { name: 'Shorts', icon: '📱' }
+                };
+                
+                for (const [type, info] of Object.entries(subtaskTypes)) {
+                    const subtask = subTasks[type];
+                    if (subtask) {
+                        const status = subtask.status || 'pending';
+                        const statusClass = getStatusClass(status);
+                        const message = escapeHtml(subtask.message || '');
+                        const progress = subtask.progress || 0;
+                        const error = subtask.error ? escapeHtml(subtask.error) : '';
+                        const outputs = subtask.outputs || {};
+                        
+                        subtasksHtml += `
+                            <div class="subtask-item">
+                                <div class="subtask-header">
+                                    <span class="subtask-icon">${info.icon}</span>
+                                    <span class="subtask-name">${info.name}</span>
+                                    <span class="task-status ${statusClass}">${escapeHtml(status)}</span>
+                                </div>
+                                ${message ? `<p class="subtask-message">${message}</p>` : ''}
+                                ${progress > 0 ? `<div class="progress-bar-small"><div class="progress-bar-fill" style="width: ${progress}%;"></div></div>` : ''}
+                                ${error ? `<p class="subtask-error">${error}</p>` : ''}
+                                ${Object.keys(outputs).length > 0 ? `
+                                    <div class="subtask-outputs">
+                                        ${Object.entries(outputs).map(([key, value]) => {
+                                            if (Array.isArray(value)) {
+                                                return `<p><strong>${escapeHtml(key)}:</strong> ${value.length} элементов</p>`;
+                                            } else if (typeof value === 'string' && value.includes('\\')) {
+                                                const fileName = value.split('\\').pop();
+                                                return `<a href="/api/files/any/${encodeURIComponent(fileName)}" target="_blank">${escapeHtml(key)}: ${escapeHtml(fileName)}</a>`;
+                                            }
+                                            return '';
+                                        }).join('')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }
+                }
+                
+                actionsHtml += `
+                    <div class="ai-clip-card" data-file-path="${escapeHtml(fileInfo.path)}">
+                        <div class="ai-clip-card-header">
+                            <h5>${fileName}</h5>
+                            <span class="ai-clip-card-date">${createdDate}</span>
+                        </div>
+                        <div class="ai-clip-card-info">
+                            <p><strong>Системный:</strong> ${systemPrompt}</p>
+                            <p><strong>Пользовательский:</strong> ${userPrompt}</p>
+                        </div>
+                        <div class="ai-clip-card-actions">
+                            <a href="/api/files/any/${encodeURIComponent(fileInfo.filename)}" target="_blank" class="btn btn-small">📥 Скачать</a>
+                            <button class="btn btn-small btn-create-compilation" data-file-path="${escapeHtml(fileInfo.path)}">🎬 Компиляция</button>
+                            <button class="btn btn-small btn-create-clips" data-file-path="${escapeHtml(fileInfo.path)}">✂️ Клипы</button>
+                            ${subTasks.clipping && subTasks.clipping.status === 'completed' && subTasks.clipping.outputs && subTasks.clipping.outputs.clips ? 
+                                `<button class="btn btn-small btn-toggle-shorts-form" data-card-id="${cardId}" data-file-path="${escapeHtml(fileInfo.path)}" data-clipping-subtask="${escapeHtml(generateSubtaskName(fileInfo, 'clipping'))}" onclick="toggleShortsForm('${cardId}')">
+                                    <span class="toggle-icon">▼</span> 📱 Shorts
+                                </button>` : ''}
+                        </div>
+                        ${subTasks.clipping && subTasks.clipping.status === 'completed' && subTasks.clipping.outputs && subTasks.clipping.outputs.clips ? 
+                            `<div class="shorts-settings-form" id="shorts-form-${cardId}" style="display: none;" data-file-path="${escapeHtml(fileInfo.path)}" data-clipping-subtask="${escapeHtml(generateSubtaskName(fileInfo, 'clipping'))}">
+                                <div class="shorts-form-content">
+                                    <h6 style="margin-top: 0; margin-bottom: 15px;">Настройки Shorts</h6>
+                                    <div class="form-group">
+                                        <label>Баннер:</label>
+                                        <select class="form-select shorts-setting" data-setting="banner_path" id="banner-${cardId}">
+                                            <option value="">Без баннера</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Текст водяного знака:</label>
+                                        <input type="text" class="form-input shorts-setting" data-setting="watermark_text" id="watermark-text-${cardId}" placeholder="Например: @channel">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Цвет водяного знака:</label>
+                                        <select class="form-select shorts-setting" data-setting="watermark_color" id="watermark-color-${cardId}">
+                                            <option value="gray">Серый</option>
+                                            <option value="white">Белый</option>
+                                            <option value="black">Черный</option>
+                                            <option value="red">Красный</option>
+                                            <option value="blue">Синий</option>
+                                            <option value="green">Зеленый</option>
+                                            <option value="yellow">Желтый</option>
+                                            <option value="orange">Оранжевый</option>
+                                            <option value="purple">Фиолетовый</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Размер шрифта водяного знака:</label>
+                                        <input type="number" class="form-input shorts-setting" data-setting="watermark_font_size" id="watermark-font-size-${cardId}" value="72" min="10" max="200">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Отступ снизу для водяного знака (px):</label>
+                                        <input type="number" class="form-input shorts-setting" data-setting="watermark_bottom_offset" id="watermark-bottom-offset-${cardId}" value="180" min="0" max="500">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Отступ сверху для баннера (px):</label>
+                                        <input type="number" class="form-input shorts-setting" data-setting="banner_offset" id="banner-offset-${cardId}" value="100" min="0" max="500">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Коэффициент увеличения высоты:</label>
+                                        <input type="number" class="form-input shorts-setting" data-setting="height_scale" id="height-scale-${cardId}" value="2.0" min="0.5" max="5.0" step="0.1">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>
+                                            <input type="checkbox" class="shorts-use-global" id="use-global-${cardId}" checked> Использовать глобальные настройки
+                                        </label>
+                                    </div>
+                                    <div class="shorts-form-actions">
+                                        <button class="btn btn-small btn-save-shorts-settings" data-card-id="${cardId}">💾 Сохранить настройки</button>
+                                        <button class="btn btn-small btn-create-shorts-from-card" data-file-path="${escapeHtml(fileInfo.path)}" data-clipping-subtask="${escapeHtml(generateSubtaskName(fileInfo, 'clipping'))}" data-card-id="${cardId}">🚀 Создать Shorts</button>
+                                    </div>
+                                </div>
+                            </div>` : ''}
+                        ${Object.keys(subTasks).length > 0 ? `
+                            <div class="ai-clip-card-subtasks">
+                                <button class="btn-toggle-subtasks" data-card-id="${cardId}" onclick="toggleSubtasks('${cardId}')">
+                                    <span class="toggle-icon">▼</span> Подзадачи (${Object.keys(subTasks).length})
+                                </button>
+                                <div class="subtasks-content" id="${cardId}" style="display: none;">
+                                    ${subtasksHtml || '<p class="subtask-empty">Нет активных подзадач</p>'}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            actionsHtml += '</div></div>';
+        }
+        
+        if (subTaskName === 'clipping' && subTask.status === 'completed') {
+             actionsHtml += `<button class="btn" id="btn-create-shorts">📱 Создать Shorts</button>`;
+        }
+
+
+        return `
+            <div class="sub-task-block" id="sub-task-${subTaskName}">
+                <h4>${getSubTaskTitle(subTaskName)}</h4>
+                <p><strong>Статус:</strong> <span class="task-status ${getStatusClass(subTask.status)}">${escapeHtml(subTask.status)}</span></p>
+                <p>${escapeHtml(subTask.message)}</p>
+                <div class="progress-bar"><div class="progress-bar-fill" style="width: ${subTask.progress}%;"></div></div>
+                ${subTask.error ? `<div class="status-message error"><strong>Ошибка:</strong> ${escapeHtml(subTask.error)}</div>` : ''}
+                
+                ${filesHtml ? `<h5>Выходные файлы:</h5><div class="file-list">${filesHtml}</div>` : ''}
+                ${actionsHtml ? `<div class="actions" style="margin-top: 20px;">${actionsHtml}</div>` : ''}
+                <div id="status-${subTaskName}" class="status-message" style="display:none;"></div>
+            </div>
+        `;
+    }
+
+
+    window.toggleShortsForm = function(cardId) {
+        const form = document.getElementById(`shorts-form-${cardId}`);
+        if (!form) return;
+        
+        const button = document.querySelector(`.btn-toggle-shorts-form[data-card-id="${cardId}"]`);
+        if (!button) return;
+        
+        const icon = button.querySelector('.toggle-icon');
+        if (!icon) return;
+        
+        if (form.style.display === 'none' || !form.style.display) {
+            form.style.display = 'block';
+            icon.textContent = '▲';
+            
+            // Загружаем баннеры и настройки при первом открытии
+            if (!form.dataset.loaded) {
+                loadShortsFormData(cardId);
+                form.dataset.loaded = 'true';
+            }
+        } else {
+            form.style.display = 'none';
+            icon.textContent = '▼';
+        }
+    };
+    
+    function loadShortsFormData(cardId) {
+        // Загружаем список баннеров
+        fetch('/api/files/list/banners')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.banners) {
+                    const select = document.getElementById(`banner-${cardId}`);
+                    if (select) {
+                        // Очищаем опции кроме первой
+                        while (select.options.length > 1) {
+                            select.remove(1);
+                        }
+                        // Добавляем баннеры
+                        data.banners.forEach(banner => {
+                            const option = document.createElement('option');
+                            option.value = banner.path;
+                            option.textContent = banner.name;
+                            select.appendChild(option);
+                        });
+                    }
+                }
+            })
+            .catch(err => console.error('Ошибка загрузки баннеров:', err));
+        
+        // Загружаем глобальные настройки
+        fetch('/api/shorts/settings')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.settings) {
+                    const useGlobal = document.getElementById(`use-global-${cardId}`);
+                    if (useGlobal && useGlobal.checked) {
+                        applySettingsToForm(cardId, data.settings);
+                    }
+                }
+            })
+            .catch(err => console.error('Ошибка загрузки настроек:', err));
+        
+        // Загружаем сохраненные настройки файла
+        const form = document.getElementById(`shorts-form-${cardId}`);
+        if (form) {
+            const filePath = form.dataset.filePath;
+            // Находим file_info в workflow
+            if (currentWorkflows && currentWorkflows.length > 0) {
+                const workflow = currentWorkflows.find(w => {
+                    return w.artifacts && w.artifacts.ai_clips_files && 
+                           w.artifacts.ai_clips_files.some(fi => fi.path === filePath);
+                });
+                if (workflow) {
+                    const fileInfo = workflow.artifacts.ai_clips_files.find(fi => fi.path === filePath);
+                    if (fileInfo && fileInfo.sub_tasks && fileInfo.sub_tasks.shorts_creation && fileInfo.sub_tasks.shorts_creation.params) {
+                        applySettingsToForm(cardId, fileInfo.sub_tasks.shorts_creation.params);
+                    }
+                }
+            }
+        }
+    }
+    
+    function applySettingsToForm(cardId, settings) {
+        Object.keys(settings).forEach(key => {
+            const element = document.querySelector(`#shorts-form-${cardId} .shorts-setting[data-setting="${key}"]`);
+            if (element) {
+                if (element.type === 'checkbox') {
+                    element.checked = settings[key];
+                } else {
+                    element.value = settings[key] || '';
+                }
+            }
+        });
+    }
+    
+    function getShortsFormData(cardId) {
+        const form = document.getElementById(`shorts-form-${cardId}`);
+        if (!form) return {};
+        
+        const settings = {};
+        form.querySelectorAll('.shorts-setting').forEach(input => {
+            const key = input.dataset.setting;
+            if (input.type === 'checkbox') {
+                settings[key] = input.checked;
+            } else if (input.type === 'number') {
+                settings[key] = input.value ? parseFloat(input.value) : null;
+            } else {
+                settings[key] = input.value || null;
+            }
+        });
+        
+        return settings;
+    }
+    
+    window.toggleSubtasks = function(cardId) {
+        const content = document.getElementById(cardId);
+        if (!content) return;
+        
+        const button = document.querySelector(`[data-card-id="${cardId}"]`);
+        if (!button) return;
+        
+        const icon = button.querySelector('.toggle-icon');
+        if (!icon) return;
+        
+        if (content.style.display === 'none' || !content.style.display) {
+            content.style.display = 'block';
+            icon.textContent = '▲';
+        } else {
+            content.style.display = 'none';
+            icon.textContent = '▼';
+        }
+    };
+
+    function attachEventListeners(workflow) {
+        // Кнопка для повторной попытки транскрипции
+        document.querySelectorAll('.btn-retry-transcription').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const taskId = e.target.dataset.taskId;
+                if (!taskId) return;
+                
+                // Показываем индикатор загрузки
+                const statusEl = document.getElementById('status-transcription');
+                if (statusEl) {
+                    statusEl.className = 'status-message info';
+                    statusEl.textContent = 'Сброс подзадачи транскрипции...';
+                    statusEl.style.display = 'block';
+                }
+                
+                // Отключаем кнопку на время запроса
+                btn.disabled = true;
+                btn.textContent = '⏳ Обработка...';
+                
+                // Вызываем API для сброса
+                fetch(`/api/colab/reset-transcription/${taskId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (statusEl) {
+                        if (data.success) {
+                            statusEl.className = 'status-message success';
+                            statusEl.textContent = data.message || 'Подзадача транскрипции успешно сброшена! Задача теперь доступна для обработки в Colab.';
+                        } else {
+                            statusEl.className = 'status-message error';
+                            statusEl.textContent = `Ошибка: ${data.error || 'Неизвестная ошибка'}`;
+                        }
+                    }
+                    // Обновляем детали задачи после короткой задержки
+                    setTimeout(() => {
+                        renderTaskDetails(selectedWorkflowId);
+                    }, 1000);
+                })
+                .catch(err => {
+                    if (statusEl) {
+                        statusEl.className = 'status-message error';
+                        statusEl.textContent = `Сетевая ошибка: ${err}`;
+                    }
+                    // Восстанавливаем кнопку при ошибке
+                    btn.disabled = false;
+                    btn.textContent = '🔄 Попробовать еще раз';
+                });
+            });
+        });
+        
+        // AI Clip Generation
+        const btnGenAiClips = document.getElementById('btn-generate-ai-clips');
+        if (btnGenAiClips) {
+            const systemPromptSelect = document.getElementById('ai-system-prompt');
+            const userPromptSelect = document.getElementById('ai-user-prompt');
+            
+            // Сохраняем выбранные значения перед обновлением
+            const savedSystemPrompt = localStorage.getItem(`ai-system-prompt-${workflow.task_id}`);
+            const savedUserPrompt = localStorage.getItem(`ai-user-prompt-${workflow.task_id}`);
+            
+            // Load prompts
+            Promise.all([
+                fetch('/api/prompts/system').then(res => res.json()),
+                fetch('/api/prompts/user').then(res => res.json())
+            ]).then(([systemData, userData]) => {
+                if(systemData.success) systemData.prompts.forEach(p => systemPromptSelect.add(new Option(p.name, p.id)));
+                if(userData.success) userData.prompts.forEach(p => userPromptSelect.add(new Option(p.name, p.id)));
+                
+                // Восстанавливаем сохраненные значения
+                if (savedSystemPrompt) {
+                    systemPromptSelect.value = savedSystemPrompt;
+                }
+                if (savedUserPrompt) {
+                    userPromptSelect.value = savedUserPrompt;
+                }
+            });
+
+            // Сохраняем значения при изменении
+            systemPromptSelect.addEventListener('change', () => {
+                localStorage.setItem(`ai-system-prompt-${workflow.task_id}`, systemPromptSelect.value);
+            });
+            userPromptSelect.addEventListener('change', () => {
+                localStorage.setItem(`ai-user-prompt-${workflow.task_id}`, userPromptSelect.value);
+            });
+
+            btnGenAiClips.addEventListener('click', () => {
+                const body = {
+                    system_prompt_id: systemPromptSelect.value,
+                    user_prompt_id: userPromptSelect.value
+                };
+                // Очищаем сохраненные значения после отправки
+                localStorage.removeItem(`ai-system-prompt-${workflow.task_id}`);
+                localStorage.removeItem(`ai-user-prompt-${workflow.task_id}`);
+                handleApiCall(`/api/tasks/${workflow.task_id}/generate-ai-clips`, body, 'ai_clip_generation');
+            });
+        }
+
+        // Compilation from AI clips (cards)
+        document.querySelectorAll('.btn-create-compilation').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const filePath = e.target.dataset.filePath;
+                const body = { 
+                    task_id: workflow.task_id, 
+                    moments_source: 'ai_clip_generation',
+                    ai_clips_file: filePath
+                };
+                handleApiCall('/api/compilation/start', body, 'compilation');
+            });
+        });
+        
+        // Clips creation from AI clips (cards)
+        document.querySelectorAll('.btn-create-clips').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const filePath = e.target.dataset.filePath;
+                const body = { 
+                    task_id: workflow.task_id,
+                    ai_clips_file: filePath
+                };
+                handleApiCall(`/api/tasks/${workflow.task_id}/create-clips-from-ai`, body, 'clipping');
+            });
+        });
+        
+        // Shorts creation from manual clips (старая кнопка в блоке clipping)
+        const btnCreateShorts = document.getElementById('btn-create-shorts');
+        if(btnCreateShorts) {
+            btnCreateShorts.addEventListener('click', () => {
+                // Here you can add a form to get shorts creation parameters
+                const body = { task_id: workflow.task_id, clips_source: 'clipping' };
+                handleApiCall('/api/shorts/start', body, 'shorts_creation');
+            });
+        }
+        
+        // Shorts creation from cards
+        document.querySelectorAll('.btn-create-shorts-from-card').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const cardId = e.target.dataset.cardId;
+                const filePath = e.target.dataset.filePath;
+                const clippingSubtask = e.target.dataset.clippingSubtask;
+                
+                // Получаем данные из формы
+                const formData = getShortsFormData(cardId);
+                
+                // Объединяем с базовыми параметрами
+                const body = { 
+                    task_id: workflow.task_id, 
+                    clips_source: clippingSubtask,
+                    ai_clips_file: filePath,
+                    ...formData
+                };
+                handleApiCall('/api/shorts/start', body, 'shorts_creation');
+            });
+        });
+        
+        // Сохранение настроек Shorts для файла
+        document.querySelectorAll('.btn-save-shorts-settings').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const cardId = e.target.dataset.cardId;
+                const form = document.getElementById(`shorts-form-${cardId}`);
+                if (!form) return;
+                
+                const filePath = form.dataset.filePath;
+                const formData = getShortsFormData(cardId);
+                
+                // Находим workflow и file_info
+                if (currentWorkflows && currentWorkflows.length > 0) {
+                    const workflow = currentWorkflows.find(w => {
+                        return w.artifacts && w.artifacts.ai_clips_files && 
+                               w.artifacts.ai_clips_files.some(fi => fi.path === filePath);
+                    });
+                    if (workflow) {
+                        const fileIndex = workflow.artifacts.ai_clips_files.findIndex(fi => fi.path === filePath);
+                        if (fileIndex !== -1) {
+                            const fileInfo = workflow.artifacts.ai_clips_files[fileIndex];
+                            if (!fileInfo.sub_tasks) {
+                                fileInfo.sub_tasks = {};
+                            }
+                            if (!fileInfo.sub_tasks.shorts_creation) {
+                                fileInfo.sub_tasks.shorts_creation = {};
+                            }
+                            fileInfo.sub_tasks.shorts_creation.params = formData;
+                            
+                            // Сохраняем через API
+                            fetch(`/api/workflow/${workflow.task_id}/update-artifacts`, {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({
+                                    ai_clips_files: workflow.artifacts.ai_clips_files
+                                })
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success) {
+                                    alert('Настройки сохранены для этого файла');
+                                } else {
+                                    alert('Ошибка сохранения: ' + (data.error || 'Неизвестная ошибка'));
+                                }
+                            })
+                            .catch(err => {
+                                console.error('Ошибка сохранения настроек:', err);
+                                alert('Ошибка сохранения настроек');
+                            });
+                        }
+                    }
+                }
+            });
+        });
+        
+        // Обработчик чекбокса "Использовать глобальные настройки"
+        document.querySelectorAll('.shorts-use-global').forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+                const cardId = checkbox.id.replace('use-global-', '');
+                if (e.target.checked) {
+                    // Загружаем глобальные настройки
+                    fetch('/api/shorts/settings')
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success && data.settings) {
+                                applySettingsToForm(cardId, data.settings);
+                            }
+                        })
+                        .catch(err => console.error('Ошибка загрузки настроек:', err));
+                }
+            });
+        });
+    }
+
+    function handleApiCall(url, body, subTaskName) {
+        const statusEl = document.getElementById(`status-${subTaskName}`);
+        if (statusEl) {
+            statusEl.className = 'status-message info';
+            statusEl.textContent = 'Выполняется...';
+            statusEl.style.display = 'block';
+        }
+
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (statusEl) {
+                if (data.success) {
+                    statusEl.className = 'status-message success';
+                    statusEl.textContent = data.message || 'Задача успешно запущена!';
+                } else {
+                    statusEl.className = 'status-message error';
+                    statusEl.textContent = `Ошибка: ${data.error}`;
+                }
+            }
+            // Refresh details after a short delay to allow backend to update
+            setTimeout(() => renderTaskDetails(selectedWorkflowId), 1000);
+        })
+        .catch(err => {
+            if (statusEl) {
+                statusEl.className = 'status-message error';
+                statusEl.textContent = `Сетевая ошибка: ${err}`;
+            }
+        });
+    }
+
+    // --- Initial Load and Polling ---
+    let isUserInteracting = false; // Флаг для отслеживания взаимодействия пользователя
+    
+    function fetchWorkflows() {
+        fetch('/api/tasks')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    renderTaskList(data.tasks);
+                    if (selectedWorkflowId) {
+                        // Обновляем детали только если пользователь не взаимодействует с формой
+                        if (!isUserInteracting) {
+                            const updatedWorkflow = data.tasks.find(t => t.task_id === selectedWorkflowId);
+                            if (updatedWorkflow) {
+                                renderTaskDetails(selectedWorkflowId);
+                            }
+                        }
+                    }
+                } else {
+                    taskListContainer.innerHTML = '<h2>🚀 Рабочие процессы</h2><div class="empty-state"><p>Ошибка загрузки.</p></div>';
+                }
+            });
+    }
+
+    // Отслеживаем взаимодействие пользователя с формами
+    document.addEventListener('focusin', (e) => {
+        if (e.target.matches('select, input, textarea')) {
+            isUserInteracting = true;
+        }
+    });
+    
+    document.addEventListener('focusout', (e) => {
+        // Небольшая задержка перед снятием флага, чтобы пользователь мог переключиться между полями
+        setTimeout(() => {
+            // Проверяем, что ни одно поле не в фокусе
+            const activeElement = document.activeElement;
+            if (!activeElement || !activeElement.matches('select, input, textarea')) {
+                isUserInteracting = false;
+            }
+        }, 200);
+    });
+    
+    // Также отслеживаем клики на кнопки, чтобы не обновлять во время взаимодействия
+    document.addEventListener('mousedown', (e) => {
+        if (e.target.matches('button, select, input, textarea')) {
+            isUserInteracting = true;
+        }
+    });
+
+    fetchWorkflows();
+    setInterval(fetchWorkflows, 3000); // Poll every 3 seconds
+});
+</script>
+{% endblock %}

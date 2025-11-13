@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Video Maker{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-brand">
+                    <div class="logo">🎬</div>
+                    <div class="brand-text">
+                        <h1>Video Maker</h1>
+                        <p>Автоматизация работы с видео контентом</p>
+                    </div>
+                </div>
+                <nav class="main-nav">
+                    <a href="{{ url_for('index') }}" class="nav-link" data-page="index">
+                        <span class="nav-icon">🏠</span>
+                        <span class="nav-text">Главная</span>
+                    </a>
+                    <a href="{{ url_for('tasks') }}" class="nav-link" data-page="tasks">
+                        <span class="nav-icon">📋</span>
+                        <span class="nav-text">Задачи</span>
+                    </a>
+                    <a href="{{ url_for('prompts') }}" class="nav-link" data-page="prompts">
+                        <span class="nav-icon">💬</span>
+                        <span class="nav-text">Промпты</span>
+                    </a>
+                    <a href="{{ url_for('logs') }}" class="nav-link" data-page="logs">
+                        <span class="nav-icon">📊</span>
+                        <span class="nav-text">Логи</span>
+                    </a>
+                </nav>
+            </div>
+        </header>
+        
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+        
+        <footer>
+            <p>&copy; 2025 Video Maker</p>
+        </footer>
+    </div>
+    
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

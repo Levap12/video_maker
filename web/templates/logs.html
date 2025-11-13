@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Логи Приложения{% endblock %}
+
+{% block extra_css %}
+<style>
+    #log-container {
+        background-color: #1a1a1a;
+        color: #dcdcdc;
+        font-family: monospace;
+        padding: 20px;
+        border-radius: 8px;
+        height: 70vh;
+        overflow-y: scroll;
+        border: 1px solid #333;
+        white-space: pre-wrap; /* Перенос строк */
+        font-size: 14px;
+    }
+    .log-line {
+        margin-bottom: 5px;
+    }
+    .log-line.info { color: #dcdcdc; }
+    .log-line.warning { color: #ffcc00; }
+    .log-line.error { color: #ff4d4d; }
+    .log-line.critical { color: #ff4d4d; font-weight: bold; }
+    .log-line.debug { color: #888888; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="workflow-container">
+    <h2>Логи Приложения в Реальном Времени</h2>
+    <p>Здесь отображаются системные сообщения вашего сервера.</p>
+    <div id="log-container">
+        <div class="log-line info">Ожидание логов от сервера...</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const logContainer = document.getElementById('log-container');
+        const socket = io(); // Подключаемся к Socket.IO серверу
+
+        // Убираем стартовое сообщение при первом логе
+        let firstLogReceived = false;
+
+        socket.on('connect', function() {
+            console.log('Успешно подключено к серверу логов!');
+        });
+
+        // Слушаем событие 'new_log'
+        socket.on('new_log', function(log) {
+            if (!firstLogReceived) {
+                logContainer.innerHTML = ''; // Очищаем контейнер
+                firstLogReceived = true;
+            }
+
+            const logLine = document.createElement('div');
+            logLine.className = `log-line ${log.level.toLowerCase()}`;
+            logLine.textContent = log.message;
+            logContainer.appendChild(logLine);
+
+            // Автоматическая прокрутка вниз
+            logContainer.scrollTop = logContainer.scrollHeight;
+        });
+    });
+</script>
+{% endblock %}

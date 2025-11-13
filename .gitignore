@@ -1,0 +1,93 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Project specific
+downloads/
+clips/
+output/
+audio/
+*.mp4
+*.mp3
+*.mov
+*.avi
+*.mkv
+*.webm
+*.wav
+temp_clips/
+shorts_output/
+logs/
+
+# Data files (keep structure but ignore content)
+data/*.txt
+data/*.json
+!data/sample_clips.json
+!data/sample_output/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# OS
+Thumbs.db
+desktop.ini
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Config (if contains sensitive data)
+config/*.env
+config/*.key
+.env
+.env.local
+.env.production
+
+# Profiles (Camoufox browser profiles)
+profiles/
+
+# Task state and sensitive data
+data/task_state.json
+data/user_prompts.json
+data/system_prompts.json
+
+# Server package (generated)
+server_package.zip
+

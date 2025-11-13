@@ -1,0 +1,22 @@
+[Unit]
+Description=Video Maker Flask Application
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/video-maker
+Environment="FLASK_ENV=production"
+EnvironmentFile=/opt/video-maker/.env
+ExecStart=/usr/bin/python3 /opt/video-maker/run_web.py
+Restart=always
+RestartSec=10
+
+# Логирование
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=video-maker
+
+[Install]
+WantedBy=multi-user.target
+

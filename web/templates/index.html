@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Главная - Video Maker{% endblock %}
+
+{% block content %}
+<div class="workflow-container">
+    <h2>Создание контента из HDRezka</h2>
+    
+    <div class="workflow-step" id="step-1">
+        <h3>Шаг 1: Ввод ссылки</h3>
+        <div class="form-group">
+            <label for="hdrezka-url">Ссылка на HDRezka:</label>
+            <input type="text" id="hdrezka-url" placeholder="https://hdrezka.ag/..." class="form-input">
+        </div>
+        <div class="form-group">
+            <label for="proxy">SOCKS прокси (опционально):</label>
+            <input type="text" id="proxy" placeholder="user:pass@host:port" class="form-input">
+            <small>Формат: user:pass@host:port</small>
+        </div>
+        <button id="btn-analyze" class="btn btn-primary">Анализировать контент</button>
+        <div id="analyze-status" class="status-message"></div>
+    </div>
+    
+    <div class="workflow-step" id="step-2" style="display: none;">
+        <h3>Шаг 2: Параметры (для сериалов)</h3>
+        <div id="series-params">
+            <div class="form-group">
+                <label for="season">Сезон:</label>
+                <select id="season" class="form-select"></select>
+            </div>
+            <div class="form-group">
+                <label for="episode">Серия:</label>
+                <select id="episode" class="form-select"></select>
+            </div>
+            <div class="form-group">
+                <label for="translator">Озвучка:</label>
+                <select id="translator" class="form-select"></select>
+            </div>
+            <div class="form-group">
+                <label for="quality">Качество:</label>
+                <select id="quality" class="form-select">
+                    <option value="360p" selected>360p (быстро)</option>
+                    <option value="480p">480p</option>
+                    <option value="720p">720p</option>
+                </select>
+            </div>
+        </div>
+        <div id="movie-params" style="display: none;">
+            <div class="form-group">
+                <label for="translator-movie">Озвучка:</label>
+                <select id="translator-movie" class="form-select"></select>
+            </div>
+            <div class="form-group">
+                <label for="quality-movie">Качество:</label>
+                <select id="quality-movie" class="form-select">
+                    <option value="360p" selected>360p (быстро)</option>
+                    <option value="480p">480p</option>
+                    <option value="720p">720p</option>
+                </select>
+            </div>
+        </div>
+        <button id="btn-start-download" class="btn btn-primary">Начать обработку</button>
+    </div>
+    
+    <div class="workflow-step" id="step-3" style="display: none;">
+        <h3>Шаг 3: Скачивание и обработка</h3>
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+            </div>
+            <div id="progress-text" class="progress-text">Ожидание...</div>
+        </div>
+        <div id="download-status" class="status-message"></div>
+    </div>
+    
+    <div class="workflow-step" id="step-4" style="display: none;">
+        <h3>Шаг 4: Извлечение моментов</h3>
+        <div class="form-group">
+            <label for="prompt">Промпт для поиска интересных моментов:</label>
+            <textarea id="prompt" class="form-textarea" rows="4" 
+                      placeholder="Например: Найди смешные диалоги, шокирующие моменты, запоминающиеся цитаты"></textarea>
+        </div>
+        <div id="moments-preview"></div>
+        <button id="btn-create-clips" class="btn btn-primary">Создать клипы</button>
+    </div>
+    
+    <div class="workflow-step" id="step-5" style="display: none;">
+        <h3>Шаг 5: Результаты</h3>
+        <div id="results-container"></div>
+    </div>
+</div>
+{% endblock %}

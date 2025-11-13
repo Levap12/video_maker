@@ -1,0 +1,993 @@
+{% extends "base.html" %}
+
+{% block title %}Менеджер Промптов{% endblock %}
+
+{% block extra_css %}
+<style>
+    .prompts-page {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .page-header {
+        margin-bottom: 30px;
+    }
+
+    .page-header h2 {
+        font-size: 2em;
+        color: #2c3e50;
+        margin-bottom: 10px;
+    }
+
+    .page-header p {
+        color: #666;
+        font-size: 1.1em;
+    }
+
+    .prompts-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+        gap: 30px;
+        margin-bottom: 30px;
+    }
+
+    @media (max-width: 768px) {
+        .prompts-container {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .prompt-section {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .prompt-section:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+
+    .prompt-section.system {
+        border-top: 4px solid #3498db;
+    }
+
+    .prompt-section.user {
+        border-top: 4px solid #2ecc71;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0;
+        font-size: 1.5em;
+        color: #2c3e50;
+    }
+
+    .section-title .icon {
+        font-size: 1.2em;
+    }
+
+    .prompt-count {
+        background: #ecf0f1;
+        color: #7f8c8d;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.9em;
+        font-weight: 600;
+    }
+
+    .section-description {
+        color: #666;
+        margin-bottom: 20px;
+        font-size: 0.95em;
+    }
+
+    .search-box {
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+    .search-box input {
+        width: 100%;
+        padding: 12px 40px 12px 15px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: border-color 0.3s;
+    }
+
+    .search-box input:focus {
+        outline: none;
+        border-color: #3498db;
+    }
+
+    .search-box .search-icon {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #999;
+    }
+
+    .btn-add {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 2px 5px rgba(52, 152, 219, 0.3);
+    }
+
+    .btn-add:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(52, 152, 219, 0.4);
+    }
+
+    .btn-add:active {
+        transform: translateY(0);
+    }
+
+    .prompt-list {
+        margin-top: 20px;
+        min-height: 100px;
+    }
+
+    .prompt-list.empty {
+        text-align: center;
+        padding: 40px;
+        color: #999;
+    }
+
+    .prompt-list.empty::before {
+        content: "📝";
+        font-size: 3em;
+        display: block;
+        margin-bottom: 10px;
+    }
+
+    .prompt-item {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 15px;
+        transition: all 0.3s;
+        animation: fadeIn 0.3s ease-in;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .prompt-item:hover {
+        border-color: #3498db;
+        box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
+        transform: translateX(5px);
+    }
+
+    .prompt-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+        gap: 15px;
+    }
+
+    .prompt-item-header h4 {
+        margin: 0;
+        color: #2c3e50;
+        font-size: 1.2em;
+        flex: 1;
+        word-break: break-word;
+    }
+
+    .prompt-actions {
+        display: flex;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    .btn-icon {
+        background: none;
+        border: none;
+        padding: 8px;
+        cursor: pointer;
+        border-radius: 6px;
+        transition: all 0.2s;
+        font-size: 16px;
+        color: #666;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+    }
+
+    .btn-icon:hover {
+        background: #e9ecef;
+        color: #2c3e50;
+        transform: scale(1.1);
+    }
+
+    .btn-icon.copy:hover {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .btn-icon.edit:hover {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+
+    .btn-icon.delete:hover {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .prompt-item-text {
+        color: #555;
+        margin-top: 10px;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .prompt-item-text.collapsed {
+        max-height: 80px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .prompt-item-text.collapsed::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 30px;
+        background: linear-gradient(to bottom, transparent, #f8f9fa);
+    }
+
+    .expand-toggle {
+        color: #3498db;
+        cursor: pointer;
+        font-size: 0.9em;
+        margin-top: 8px;
+        display: inline-block;
+        font-weight: 600;
+        transition: color 0.2s;
+    }
+
+    .expand-toggle:hover {
+        color: #2980b9;
+        text-decoration: underline;
+    }
+
+    .loading-indicator {
+        text-align: center;
+        padding: 40px;
+        color: #999;
+    }
+
+    .loading-spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #3498db;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Модальное окно */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.5);
+        backdrop-filter: blur(4px);
+        animation: fadeIn 0.3s;
+    }
+
+    .modal.show {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-content {
+        background-color: white;
+        margin: auto;
+        padding: 30px;
+        border: none;
+        width: 90%;
+        max-width: 700px;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        animation: slideDown 0.3s;
+        position: relative;
+    }
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-50px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e9ecef;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        color: #2c3e50;
+        font-size: 1.5em;
+    }
+
+    .close-btn {
+        color: #999;
+        font-size: 32px;
+        font-weight: bold;
+        cursor: pointer;
+        line-height: 1;
+        transition: color 0.2s;
+        background: none;
+        border: none;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .close-btn:hover {
+        color: #2c3e50;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #555;
+        font-size: 14px;
+    }
+
+    .form-input,
+    .form-textarea {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        font-size: 15px;
+        transition: all 0.3s;
+        font-family: inherit;
+    }
+
+    .form-input:focus,
+    .form-textarea:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+
+    .form-textarea {
+        resize: vertical;
+        min-height: 150px;
+        line-height: 1.6;
+    }
+
+    .char-count {
+        text-align: right;
+        color: #999;
+        font-size: 0.85em;
+        margin-top: 5px;
+    }
+
+    .char-count.warning {
+        color: #f39c12;
+    }
+
+    .char-count.error {
+        color: #e74c3c;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 25px;
+        padding-top: 20px;
+        border-top: 2px solid #e9ecef;
+    }
+
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        box-shadow: 0 2px 5px rgba(52, 152, 219, 0.3);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(52, 152, 219, 0.4);
+    }
+
+    .btn-secondary {
+        background: #95a5a6;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #7f8c8d;
+    }
+
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none !important;
+    }
+
+    /* Toast уведомления */
+    .toast {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: white;
+        padding: 16px 24px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 2000;
+        animation: slideInRight 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 300px;
+        max-width: 500px;
+    }
+
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    .toast.success {
+        border-left: 4px solid #2ecc71;
+    }
+
+    .toast.error {
+        border-left: 4px solid #e74c3c;
+    }
+
+    .toast.info {
+        border-left: 4px solid #3498db;
+    }
+
+    .toast-icon {
+        font-size: 20px;
+    }
+
+    .toast-message {
+        flex: 1;
+        color: #2c3e50;
+        font-weight: 500;
+    }
+
+    .toast-close {
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: #999;
+        padding: 0;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .toast-close:hover {
+        color: #2c3e50;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="prompts-page">
+    <div class="page-header">
+        <h2>📋 Менеджер Промптов</h2>
+        <p>Управляйте системными и пользовательскими промптами для AI</p>
+    </div>
+
+    <div class="prompts-container">
+        <!-- Секция Системных Промптов -->
+        <div class="prompt-section system">
+            <div class="section-header">
+                <div>
+                    <h3 class="section-title">
+                        <span class="icon">⚙️</span>
+                        Системные Промпты
+                        <span class="prompt-count" id="system-count">0</span>
+                    </h3>
+                    <p class="section-description">Инструкции, определяющие роль и формат ответа AI</p>
+                </div>
+                <button class="btn-add" onclick="openModal('system')">
+                    <span>➕</span> Добавить
+                </button>
+            </div>
+            <div class="search-box">
+                <input type="text" id="system-search" placeholder="🔍 Поиск системных промптов..." oninput="filterPrompts('system', this.value)">
+                <span class="search-icon">🔍</span>
+            </div>
+            <div class="prompt-list" id="system-prompts-list">
+                <div class="loading-indicator">
+                    <div class="loading-spinner"></div>
+                    <p>Загрузка промптов...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Секция Пользовательских Промптов -->
+        <div class="prompt-section user">
+            <div class="section-header">
+                <div>
+                    <h3 class="section-title">
+                        <span class="icon">👤</span>
+                        Пользовательские Промпты
+                        <span class="prompt-count" id="user-count">0</span>
+                    </h3>
+                    <p class="section-description">Шаблоны конкретных задач для AI</p>
+                </div>
+                <button class="btn-add" onclick="openModal('user')">
+                    <span>➕</span> Добавить
+                </button>
+            </div>
+            <div class="search-box">
+                <input type="text" id="user-search" placeholder="🔍 Поиск пользовательских промптов..." oninput="filterPrompts('user', this.value)">
+                <span class="search-icon">🔍</span>
+            </div>
+            <div class="prompt-list" id="user-prompts-list">
+                <div class="loading-indicator">
+                    <div class="loading-spinner"></div>
+                    <p>Загрузка промптов...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для добавления/редактирования -->
+<div id="prompt-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modal-title">Добавить Промпт</h3>
+            <button class="close-btn" onclick="closeModal()" aria-label="Закрыть">&times;</button>
+        </div>
+        <form id="prompt-form" onsubmit="savePrompt(event)">
+            <div class="form-group">
+                <label for="prompt-name">Название промпта *</label>
+                <input type="text" id="prompt-name" class="form-input" required placeholder="Введите название промпта">
+            </div>
+            <div class="form-group">
+                <label for="prompt-text">Текст промпта *</label>
+                <textarea id="prompt-text" class="form-textarea" rows="12" required placeholder="Введите текст промпта..."></textarea>
+                <div class="char-count" id="char-count">0 символов</div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+                <button type="submit" class="btn btn-primary" id="save-prompt-btn">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const modal = document.getElementById('prompt-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const promptNameInput = document.getElementById('prompt-name');
+    const promptTextInput = document.getElementById('prompt-text');
+    const savePromptBtn = document.getElementById('save-prompt-btn');
+    const charCount = document.getElementById('char-count');
+    const promptForm = document.getElementById('prompt-form');
+
+    let currentEdit = { type: null, id: null };
+    let allPrompts = { system: [], user: [] };
+    let expandedPrompts = new Set();
+
+    // Инициализация
+    document.addEventListener('DOMContentLoaded', function() {
+        loadPrompts();
+        setupEventListeners();
+    });
+
+    function setupEventListeners() {
+        // Подсчет символов
+        promptTextInput.addEventListener('input', function() {
+            const count = this.value.length;
+            charCount.textContent = `${count} символов`;
+            charCount.className = 'char-count';
+            if (count > 5000) {
+                charCount.classList.add('error');
+            } else if (count > 3000) {
+                charCount.classList.add('warning');
+            }
+        });
+
+        // Закрытие модального окна по ESC
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && modal.classList.contains('show')) {
+                closeModal();
+            }
+        });
+
+        // Закрытие модального окна при клике вне его
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+    }
+
+    function openModal(type, id = null, name = '', text = '') {
+        currentEdit.type = type;
+        currentEdit.id = id;
+        modalTitle.textContent = id ? '✏️ Редактировать Промпт' : '➕ Добавить Промпт';
+        promptNameInput.value = name;
+        promptTextInput.value = text;
+        promptTextInput.dispatchEvent(new Event('input')); // Обновить счетчик символов
+        modal.classList.add('show');
+        promptNameInput.focus();
+    }
+
+    function closeModal() {
+        modal.classList.remove('show');
+        setTimeout(() => {
+            promptForm.reset();
+            charCount.textContent = '0 символов';
+            charCount.className = 'char-count';
+            currentEdit = { type: null, id: null };
+        }, 300);
+    }
+
+    function savePrompt(event) {
+        event.preventDefault();
+        
+        const name = promptNameInput.value.trim();
+        const text = promptTextInput.value.trim();
+
+        if (!name || !text) {
+            showToast('Пожалуйста, заполните все поля', 'error');
+            return;
+        }
+
+        savePromptBtn.disabled = true;
+        savePromptBtn.textContent = 'Сохранение...';
+
+        const url = currentEdit.id 
+            ? `/api/prompts/${currentEdit.type}/${currentEdit.id}` 
+            : `/api/prompts/${currentEdit.type}`;
+        const method = currentEdit.id ? 'PUT' : 'POST';
+        
+        fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, text })
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            }
+            throw new Error('Ошибка сохранения');
+        })
+        .then(data => {
+            showToast(
+                currentEdit.id ? 'Промпт успешно обновлен' : 'Промпт успешно создан',
+                'success'
+            );
+            closeModal();
+            loadPrompts();
+        })
+        .catch(error => {
+            showToast('Ошибка при сохранении промпта', 'error');
+            console.error('Error:', error);
+        })
+        .finally(() => {
+            savePromptBtn.disabled = false;
+            savePromptBtn.textContent = 'Сохранить';
+        });
+    }
+
+    function deletePrompt(type, id, name) {
+        if (!confirm(`Вы уверены, что хотите удалить промпт "${name}"?`)) return;
+
+        fetch(`/api/prompts/${type}/${id}`, { method: 'DELETE' })
+        .then(response => {
+            if (response.ok) {
+                showToast('Промпт успешно удален', 'success');
+                loadPrompts();
+            } else {
+                throw new Error('Ошибка удаления');
+            }
+        })
+        .catch(error => {
+            showToast('Ошибка при удалении промпта', 'error');
+            console.error('Error:', error);
+        });
+    }
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Промпт скопирован в буфер обмена', 'success');
+        }).catch(err => {
+            showToast('Ошибка при копировании', 'error');
+            console.error('Copy error:', err);
+        });
+    }
+
+
+    function renderPrompts(type, prompts, searchTerm = '') {
+        const container = document.getElementById(`${type}-prompts-list`);
+        const countElement = document.getElementById(`${type}-count`);
+        
+        // Фильтрация
+        const filteredPrompts = searchTerm
+            ? prompts.filter(p => 
+                p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                p.text.toLowerCase().includes(searchTerm.toLowerCase())
+              )
+            : prompts;
+
+        countElement.textContent = filteredPrompts.length;
+
+        if (filteredPrompts.length === 0) {
+            container.innerHTML = searchTerm
+                ? '<div class="prompt-list empty">Промпты не найдены</div>'
+                : '<div class="prompt-list empty">Нет промптов. Добавьте первый!</div>';
+            return;
+        }
+
+        container.innerHTML = '';
+        filteredPrompts.forEach(p => {
+            const item = document.createElement('div');
+            item.className = 'prompt-item';
+            item.dataset.type = type;
+            item.dataset.id = p.id;
+            item.dataset.name = p.name;
+            item.dataset.text = p.text;
+
+            const isLong = p.text.length > 150;
+            const isExpanded = expandedPrompts.has(p.id);
+            const displayText = isLong && !isExpanded ? p.text.substring(0, 150) + '...' : p.text;
+
+            const header = document.createElement('div');
+            header.className = 'prompt-item-header';
+            
+            const title = document.createElement('h4');
+            title.textContent = p.name;
+            header.appendChild(title);
+
+            const actions = document.createElement('div');
+            actions.className = 'prompt-actions';
+
+            // Кнопка копирования
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'btn-icon copy';
+            copyBtn.setAttribute('data-action', 'copy');
+            copyBtn.setAttribute('data-text', p.text);
+            copyBtn.setAttribute('title', 'Копировать');
+            copyBtn.textContent = '📋';
+            actions.appendChild(copyBtn);
+
+            // Кнопка редактирования
+            const editBtn = document.createElement('button');
+            editBtn.className = 'btn-icon edit';
+            editBtn.setAttribute('data-action', 'edit');
+            editBtn.setAttribute('data-type', type);
+            editBtn.setAttribute('data-id', p.id);
+            editBtn.setAttribute('title', 'Редактировать');
+            editBtn.textContent = '✏️';
+            actions.appendChild(editBtn);
+
+            // Кнопка удаления
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn-icon delete';
+            deleteBtn.setAttribute('data-action', 'delete');
+            deleteBtn.setAttribute('data-type', type);
+            deleteBtn.setAttribute('data-id', p.id);
+            deleteBtn.setAttribute('data-name', p.name);
+            deleteBtn.setAttribute('title', 'Удалить');
+            deleteBtn.textContent = '🗑️';
+            actions.appendChild(deleteBtn);
+
+            header.appendChild(actions);
+            item.appendChild(header);
+
+            // Текст промпта
+            const textDiv = document.createElement('div');
+            textDiv.className = `prompt-item-text ${isLong && !isExpanded ? 'collapsed' : ''}`;
+            textDiv.id = `text-${p.id}`;
+            textDiv.textContent = displayText;
+            item.appendChild(textDiv);
+
+            // Кнопка разворачивания
+            if (isLong) {
+                const toggleSpan = document.createElement('span');
+                toggleSpan.className = 'expand-toggle';
+                toggleSpan.id = `toggle-${p.id}`;
+                toggleSpan.setAttribute('data-action', 'toggle');
+                toggleSpan.setAttribute('data-id', p.id);
+                toggleSpan.textContent = isExpanded ? 'Свернуть' : 'Показать полностью';
+                item.appendChild(toggleSpan);
+            }
+
+            container.appendChild(item);
+        });
+    }
+
+    function filterPrompts(type, searchTerm) {
+        renderPrompts(type, allPrompts[type], searchTerm);
+    }
+
+    function loadPrompts() {
+        Promise.all([
+            fetch('/api/prompts/system').then(res => res.json()),
+            fetch('/api/prompts/user').then(res => res.json())
+        ])
+        .then(([systemData, userData]) => {
+            allPrompts.system = systemData.prompts || [];
+            allPrompts.user = userData.prompts || [];
+            renderPrompts('system', allPrompts.system);
+            renderPrompts('user', allPrompts.user);
+        })
+        .catch(error => {
+            console.error('Error loading prompts:', error);
+            showToast('Ошибка при загрузке промптов', 'error');
+        });
+    }
+
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        const icons = {
+            success: '✅',
+            error: '❌',
+            info: 'ℹ️'
+        };
+
+        toast.innerHTML = `
+            <span class="toast-icon">${icons[type] || icons.info}</span>
+            <span class="toast-message">${message}</span>
+            <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+        `;
+
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.animation = 'slideInRight 0.3s reverse';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Делегирование событий для динамических элементов
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.getAttribute('data-action');
+        const promptItem = target.closest('.prompt-item');
+        
+        if (!promptItem) return;
+
+        const type = promptItem.dataset.type;
+        const id = promptItem.dataset.id;
+        const name = promptItem.dataset.name;
+        const text = promptItem.dataset.text;
+
+        if (action === 'copy') {
+            const textToCopy = target.getAttribute('data-text') || text;
+            copyToClipboard(textToCopy);
+        } else if (action === 'edit') {
+            openModal(type, id, name, text);
+        } else if (action === 'delete') {
+            const promptName = target.getAttribute('data-name') || name;
+            deletePrompt(type, id, promptName);
+        } else if (action === 'toggle') {
+            const promptId = target.getAttribute('data-id');
+            const textElement = document.getElementById(`text-${promptId}`);
+            if (textElement) {
+                const fullText = promptItem.dataset.text;
+                const isExpanded = expandedPrompts.has(promptId);
+                
+                if (isExpanded) {
+                    textElement.textContent = fullText.substring(0, 150) + '...';
+                    textElement.classList.add('collapsed');
+                    target.textContent = 'Показать полностью';
+                    expandedPrompts.delete(promptId);
+                } else {
+                    textElement.textContent = fullText;
+                    textElement.classList.remove('collapsed');
+                    target.textContent = 'Свернуть';
+                    expandedPrompts.add(promptId);
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
+
