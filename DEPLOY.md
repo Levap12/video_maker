@@ -57,17 +57,30 @@ deploy.bat
 
 Или вручную:
 ```bash
+# Docker Compose V2 (рекомендуется)
+docker compose up -d --build
+
+# Или Docker Compose V1 (старая версия)
 docker-compose up -d --build
 ```
 
 4. **Проверьте статус:**
 ```bash
+# Docker Compose V2
+docker compose ps
+docker compose logs -f
+
+# Или Docker Compose V1
 docker-compose ps
 docker-compose logs -f
 ```
 
 5. **Остановка:**
 ```bash
+# Docker Compose V2
+docker compose down
+
+# Или Docker Compose V1
 docker-compose down
 ```
 
@@ -139,7 +152,7 @@ jobs:
           script: |
             cd /opt/video-maker
             git pull
-            docker-compose up -d --build
+            docker compose up -d --build
 ```
 
 ### Настройка Secrets в GitHub
@@ -165,7 +178,10 @@ jobs:
 ### С Docker:
 ```bash
 git pull
-docker-compose up -d --build
+# Docker Compose V2 (рекомендуется)
+docker compose up -d --build
+# Или Docker Compose V1
+# docker-compose up -d --build
 ```
 
 ### С Systemd:
@@ -192,8 +208,10 @@ sudo ufw allow 5000/tcp
 
 ### Просмотр логов
 ```bash
-# Docker
-docker-compose logs -f
+# Docker Compose V2
+docker compose logs -f
+# Или Docker Compose V1
+# docker-compose logs -f
 
 # Systemd
 sudo journalctl -u video-maker -f

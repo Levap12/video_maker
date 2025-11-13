@@ -3,6 +3,23 @@ REM Скрипт для деплоя на Windows сервер
 
 echo === Деплой Video Maker ===
 
+REM Определяем команду docker compose (поддержка V1 и V2)
+docker compose version >nul 2>&1
+if %errorlevel% == 0 (
+    set DOCKER_COMPOSE=docker compose
+    echo Используется Docker Compose V2
+) else (
+    docker-compose --version >nul 2>&1
+    if %errorlevel% == 0 (
+        set DOCKER_COMPOSE=docker-compose
+        echo Используется Docker Compose V1
+    ) else (
+        echo ОШИБКА: Docker Compose не найден!
+        echo Установите Docker и Docker Compose
+        exit /b 1
+    )
+)
+
 REM Проверяем наличие .env файла
 if not exist .env (
     echo ОШИБКА: Файл .env не найден!
@@ -12,17 +29,17 @@ if not exist .env (
 
 REM Останавливаем старый контейнер если он запущен
 echo Остановка старых контейнеров...
-docker-compose down
+%DOCKER_COMPOSE% down
 
 REM Собираем новый образ
 echo Сборка Docker образа...
-docker-compose build --no-cache
+%DOCKER_COMPOSE% build --no-cache
 
 REM Запускаем контейнер
 echo Запуск контейнера...
-docker-compose up -d
+%DOCKER_COMPOSE% up -d
 
 REM Показываем логи
 echo Логи приложения:
-docker-compose logs -f --tail=50
+%DOCKER_COMPOSE% logs -f --tail=50
 

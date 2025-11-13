@@ -42,7 +42,10 @@ cp env.example .env
 nano .env  # Заполните переменные
 
 # Запустите
-docker-compose up -d --build
+# Docker Compose V2 (рекомендуется)
+docker compose up -d --build
+# Или Docker Compose V1
+# docker-compose up -d --build
 ```
 
 ### Вариант B: Без Docker
@@ -76,7 +79,10 @@ python run_web.py
 
 ```bash
 git pull
-docker-compose up -d --build  # для Docker
+# Docker Compose V2 (рекомендуется)
+docker compose up -d --build  # для Docker
+# Или Docker Compose V1
+# docker-compose up -d --build
 # или
 sudo systemctl restart video-maker  # для systemd
 ```
