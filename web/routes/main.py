@@ -29,11 +29,12 @@ def analyze_content():
         data = request.get_json()
         url = data.get('url')
         proxy = data.get('proxy')
+        proxy_type = data.get('proxy_type', 'socks5')
         
         if not url:
             return jsonify({'success': False, 'error': 'URL не указан'}), 400
         
-        service = HdRezkaService(proxy=proxy)
+        service = HdRezkaService(proxy=proxy, proxy_type=proxy_type)
         result = service.analyze_content(url)
         return jsonify(result)
         
@@ -60,6 +61,7 @@ def start_workflow():
         params = {
             'url': url,
             'proxy': data.get('proxy'),
+            'proxy_type': data.get('proxy_type', 'socks5'),
             'season': int(season) if season else None,
             'episode': int(episode) if episode else None,
             'translator_id': int(translator_id) if translator_id else None,

@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block title %}Настройки - Video Maker{% endblock %}
+
+{% block extra_css %}
+<style>
+    .settings-container {
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 20px;
+    }
+    
+    .settings-section {
+        background: white;
+        padding: 24px;
+        border-radius: 16px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid #e2e8f0;
+    }
+    
+    .settings-section h2 {
+        margin-top: 0;
+        margin-bottom: 20px;
+        color: #2d3748;
+        font-size: 24px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #4a5568;
+        font-weight: 600;
+        font-size: 15px;
+    }
+    
+    .form-input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 15px;
+        transition: border-color 0.3s ease;
+    }
+    
+    .form-input:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+    
+    .form-input:disabled {
+        background-color: #f7fafc;
+        cursor: not-allowed;
+    }
+    
+    .form-select {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 15px;
+        transition: border-color 0.3s ease;
+        background-color: white;
+    }
+    
+    .form-select:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+    
+    .form-select:disabled {
+        background-color: #f7fafc;
+        cursor: not-allowed;
+    }
+    
+    .form-help {
+        font-size: 13px;
+        color: #718096;
+        margin-top: 6px;
+    }
+    
+    input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: #667eea;
+    }
+    
+    label {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+    }
+    
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 10px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    }
+    
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    .status-message {
+        padding: 14px 18px;
+        border-radius: 10px;
+        margin-top: 16px;
+        font-weight: 500;
+        border-left: 4px solid;
+    }
+    
+    .status-message.success {
+        background: #d4edda;
+        color: #155724;
+        border-left-color: #28a745;
+    }
+    
+    .status-message.error {
+        background: #f8d7da;
+        color: #721c24;
+        border-left-color: #dc3545;
+    }
+    
+    .status-message.info {
+        background: #d1ecf1;
+        color: #0c5460;
+        border-left-color: #17a2b8;
+    }
+    
+    .status-message.hidden {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+    <div class="settings-section">
+        <h2>⚙️ Настройки приложения</h2>
+        
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="proxy-enabled" style="margin-right: 8px; width: auto;">
+                Использовать прокси для HDRezka
+            </label>
+            <div class="form-help" style="margin-top: 8px; margin-left: 24px;">Прокси используется только для работы с HDRezka (анализ контента и скачивание видео).</div>
+        </div>
+        
+        <div class="form-group" id="proxy-settings" style="display: none;">
+            <label for="proxy-type">Тип прокси:</label>
+            <select id="proxy-type" class="form-select" style="margin-bottom: 12px;">
+                <option value="socks5">SOCKS5</option>
+                <option value="https">HTTPS</option>
+            </select>
+            
+            <label for="proxy">Прокси:</label>
+            <input type="text" id="proxy" class="form-input" placeholder="user:pass@host:port">
+            <div class="form-help">Формат: user:pass@host:port (для SOCKS5 и HTTPS)</div>
+        </div>
+        
+        <button id="btn-save-settings" class="btn">💾 Сохранить настройки</button>
+        <div id="settings-status" class="status-message hidden"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const proxyEnabledCheckbox = document.getElementById('proxy-enabled');
+    const proxyTypeSelect = document.getElementById('proxy-type');
+    const proxyInput = document.getElementById('proxy');
+    const proxySettings = document.getElementById('proxy-settings');
+    const btnSaveSettings = document.getElementById('btn-save-settings');
+    const settingsStatus = document.getElementById('settings-status');
+    
+    // Показываем/скрываем настройки прокси в зависимости от чекбокса
+    function toggleProxySettings() {
+        if (proxyEnabledCheckbox.checked) {
+            proxySettings.style.display = 'block';
+            proxyTypeSelect.disabled = false;
+            proxyInput.disabled = false;
+        } else {
+            proxySettings.style.display = 'none';
+            proxyTypeSelect.disabled = true;
+            proxyInput.disabled = true;
+        }
+    }
+    
+    // Загружаем сохраненные настройки при загрузке страницы
+    function loadSettings() {
+        const savedProxyEnabled = localStorage.getItem('proxy-enabled');
+        const savedProxyType = localStorage.getItem('proxy-type');
+        const savedProxy = localStorage.getItem('proxy');
+        
+        if (savedProxyEnabled === 'true') {
+            proxyEnabledCheckbox.checked = true;
+        }
+        
+        if (savedProxyType) {
+            proxyTypeSelect.value = savedProxyType;
+        }
+        
+        if (savedProxy) {
+            proxyInput.value = savedProxy;
+        }
+        
+        toggleProxySettings();
+    }
+    
+    // Сохраняем настройки
+    function saveSettings() {
+        const proxyEnabled = proxyEnabledCheckbox.checked;
+        const proxyType = proxyTypeSelect.value;
+        const proxy = proxyInput.value.trim();
+        
+        // Валидация прокси (если включен и указан)
+        if (proxyEnabled && proxy) {
+            const proxyPattern = /^[^:]+:[^@]+@[^:]+:\d+$/;
+            if (!proxyPattern.test(proxy)) {
+                showStatus('error', 'Неверный формат прокси. Ожидается: user:pass@host:port');
+                return;
+            }
+        }
+        
+        // Сохраняем в localStorage
+        localStorage.setItem('proxy-enabled', proxyEnabled ? 'true' : 'false');
+        localStorage.setItem('proxy-type', proxyType);
+        
+        if (proxyEnabled && proxy) {
+            localStorage.setItem('proxy', proxy);
+        } else {
+            localStorage.removeItem('proxy');
+        }
+        
+        showStatus('success', 'Настройки успешно сохранены!');
+        
+        // Очищаем сообщение через 3 секунды
+        setTimeout(() => {
+            settingsStatus.classList.add('hidden');
+        }, 3000);
+    }
+    
+    // Показываем статус
+    function showStatus(type, message) {
+        settingsStatus.className = `status-message ${type}`;
+        settingsStatus.textContent = message;
+        settingsStatus.classList.remove('hidden');
+    }
+    
+    // Обработчик чекбокса
+    proxyEnabledCheckbox.addEventListener('change', toggleProxySettings);
+    
+    // Обработчик кнопки сохранения
+    btnSaveSettings.addEventListener('click', saveSettings);
+    
+    // Сохранение при нажатии Enter в поле прокси
+    proxyInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            saveSettings();
+        }
+    });
+    
+    // Загружаем настройки при загрузке страницы
+    loadSettings();
+});
+</script>
+{% endblock %}
+

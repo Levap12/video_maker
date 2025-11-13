@@ -88,6 +88,11 @@ def logs():
     """Страница для просмотра логов в реальном времени."""
     return render_template('logs.html')
 
+@app.route('/settings')
+def settings():
+    """Страница настроек."""
+    return render_template('settings.html')
+
 
 @socketio.on('connect')
 def handle_connect():

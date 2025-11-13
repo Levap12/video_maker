@@ -912,6 +912,7 @@ def create_video():
         artifacts = {
             'url': url,
             'proxy': data.get('proxy', ''),
+            'proxy_type': data.get('proxy_type', 'socks5'),
             'season': int(season) if season else None,
             'episode': int(episode) if episode else None,
             'translator_id': int(translator_id) if translator_id else None,
@@ -933,6 +934,7 @@ def create_video():
             task_id=task_id,
             url=url,
             proxy=data.get('proxy'),
+            proxy_type=data.get('proxy_type', 'socks5'),
             season=int(season) if season else None,
             episode=int(episode) if episode else None,
             translator_id=int(translator_id) if translator_id else None,

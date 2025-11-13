@@ -21,6 +21,7 @@ from web.config import Config
 from scripts.audio_extractor import AudioExtractor
 
 def start_initial_processing_task(task_id: str, url: str, proxy: str = None,
+                                proxy_type: str = 'socks5',
                                 season: int = None, episode: int = None,
                                 translator_id: int = None, quality: str = '360p'):
     """Запускает фоновую задачу начальной обработки как подзадачу."""
@@ -36,7 +37,7 @@ def start_initial_processing_task(task_id: str, url: str, proxy: str = None,
             )
             logger.info(f"[{task_id}] Подзадача '{sub_task_name}' создана и сохранена.")
 
-            service = HdRezkaService(proxy=proxy)
+            service = HdRezkaService(proxy=proxy, proxy_type=proxy_type)
             
             logger.info(f"[{task_id}] Параметры: season={season} (type: {type(season).__name__}), episode={episode} (type: {type(episode).__name__}), translator_id={translator_id}, quality={quality}")
             

@@ -21,8 +21,20 @@ document.addEventListener('DOMContentLoaded', function() {
     if (btnAnalyze) {
         const btnStartDownload = document.getElementById('btn-start-download');
         const hdrezkaUrlInput = document.getElementById('hdrezka-url');
-        const proxyInput = document.getElementById('proxy');
         const analyzeStatus = document.getElementById('analyze-status');
+        
+        // Функция для получения настроек прокси из localStorage
+        function getProxySettings() {
+            const enabled = localStorage.getItem('proxy-enabled') === 'true';
+            const proxy = localStorage.getItem('proxy') || '';
+            const proxyType = localStorage.getItem('proxy-type') || 'socks5';
+            
+            return {
+                enabled: enabled,
+                proxy: proxy,
+                proxyType: proxyType
+            };
+        }
         
         const step2 = document.getElementById('step-2');
         const seriesParams = document.getElementById('series-params');
@@ -40,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         btnAnalyze.addEventListener('click', () => {
             const url = hdrezkaUrlInput.value;
-            const proxy = proxyInput.value;
+            const proxySettings = getProxySettings();
 
             if (!url) {
                 analyzeStatus.textContent = 'Пожалуйста, введите URL.';
@@ -52,12 +64,18 @@ document.addEventListener('DOMContentLoaded', function() {
             analyzeStatus.className = 'status-message info';
             btnAnalyze.disabled = true;
 
+            const requestData = { 
+                url,
+                proxy: proxySettings.enabled && proxySettings.proxy ? proxySettings.proxy : null,
+                proxy_type: proxySettings.enabled && proxySettings.proxy ? proxySettings.proxyType : null
+            };
+
             fetch('/api/workflow/analyze', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ url, proxy }),
+                body: JSON.stringify(requestData),
             })
             .then(response => response.json())
             .then(data => {
@@ -133,8 +151,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         btnStartDownload.addEventListener('click', () => {
             const url = hdrezkaUrlInput.value;
-            const proxy = proxyInput.value;
-            let params = { url, proxy };
+            const proxySettings = getProxySettings();
+            let params = { 
+                url, 
+                proxy: proxySettings.enabled && proxySettings.proxy ? proxySettings.proxy : null,
+                proxy_type: proxySettings.enabled && proxySettings.proxy ? proxySettings.proxyType : null
+            };
 
             const isSeries = seriesParams.style.display === 'block';
 

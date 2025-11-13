@@ -21,20 +21,25 @@ except ImportError:
 class HdRezkaService:
     """Сервис для работы с HDRezka через HdRezkaApi"""
     
-    def __init__(self, proxy: Optional[str] = None):
+    def __init__(self, proxy: Optional[str] = None, proxy_type: str = 'socks5'):
         """
         Инициализация сервиса
         
         Args:
-            proxy: SOCKS прокси в формате 'user:pass@host:port' или None
+            proxy: Прокси в формате 'user:pass@host:port' или None
+            proxy_type: Тип прокси - 'socks5' или 'https' (по умолчанию 'socks5')
         """
-        self.proxy = self._parse_proxy(proxy) if proxy else None
+        self.proxy = self._parse_proxy(proxy, proxy_type) if proxy else None
         self.sessions = {}  # Кэш сессий для разных доменов
     
-    def _parse_proxy(self, proxy_string: str) -> Dict[str, str]:
+    def _parse_proxy(self, proxy_string: str, proxy_type: str = 'socks5') -> Dict[str, str]:
         """
-        Парсит SOCKS прокси из формата 'user:pass@host:port'
+        Парсит прокси из формата 'user:pass@host:port'
         в формат для HdRezkaApi
+        
+        Args:
+            proxy_string: Строка прокси в формате 'user:pass@host:port'
+            proxy_type: Тип прокси - 'socks5' или 'https'
         """
         pattern = r'^([^:]+):([^@]+)@([^:]+):(\d+)$'
         match = re.match(pattern, proxy_string.strip())
@@ -43,7 +48,12 @@ class HdRezkaService:
             raise ValueError(f"Неверный формат прокси: {proxy_string}. Ожидается: user:pass@host:port")
         
         user, password, host, port = match.groups()
-        proxy_url = f'socks5://{user}:{password}@{host}:{port}'
+        
+        # Формируем URL в зависимости от типа прокси
+        if proxy_type.lower() == 'https':
+            proxy_url = f'http://{user}:{password}@{host}:{port}'
+        else:  # socks5 по умолчанию
+            proxy_url = f'socks5://{user}:{password}@{host}:{port}'
         
         return {
             'http': proxy_url,
