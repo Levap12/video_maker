@@ -88,6 +88,10 @@ data/task_state.json
 data/user_prompts.json
 data/system_prompts.json
 
+# AI clips and transcriptions (generated data)
+data/ai_clips/
+data/transcriptions/
+
 # Server package (generated)
 server_package.zip
 
