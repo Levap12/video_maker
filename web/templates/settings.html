@@ -218,27 +218,80 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Загружаем сохраненные настройки при загрузке страницы
     function loadSettings() {
-        // Загружаем из localStorage (для прокси)
-        const savedProxyEnabled = localStorage.getItem('proxy-enabled');
-        const savedProxyType = localStorage.getItem('proxy-type');
-        const savedProxy = localStorage.getItem('proxy');
+        // Загружаем настройки с сервера
+        fetch('/api/settings')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.settings) {
+                    const settings = data.settings;
+                    
+                    // Загружаем настройки прокси
+                    if (settings.proxy_enabled !== undefined) {
+                        proxyEnabledCheckbox.checked = settings.proxy_enabled;
+                    } else {
+                        // Fallback на localStorage для обратной совместимости
+                        const savedProxyEnabled = localStorage.getItem('proxy-enabled');
+                        if (savedProxyEnabled === 'true') {
+                            proxyEnabledCheckbox.checked = true;
+                        }
+                    }
+                    
+                    if (settings.proxy_type) {
+                        proxyTypeSelect.value = settings.proxy_type;
+                    } else {
+                        // Fallback на localStorage
+                        const savedProxyType = localStorage.getItem('proxy-type');
+                        if (savedProxyType) {
+                            proxyTypeSelect.value = savedProxyType;
+                        }
+                    }
+                    
+                    toggleProxySettings();
+                    
+                    // Загружаем полный прокси через специальный endpoint
+                    fetch('/api/settings/proxy-full')
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success && data.proxy) {
+                                proxyInput.value = data.proxy;
+                            } else {
+                                // Fallback на localStorage
+                                const savedProxy = localStorage.getItem('proxy');
+                                if (savedProxy) {
+                                    proxyInput.value = savedProxy;
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Ошибка загрузки прокси:', error);
+                            // Fallback на localStorage
+                            const savedProxy = localStorage.getItem('proxy');
+                            if (savedProxy) {
+                                proxyInput.value = savedProxy;
+                            }
+                        });
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка загрузки настроек:', error);
+                // Fallback на localStorage
+                const savedProxyEnabled = localStorage.getItem('proxy-enabled');
+                const savedProxyType = localStorage.getItem('proxy-type');
+                const savedProxy = localStorage.getItem('proxy');
+                
+                if (savedProxyEnabled === 'true') {
+                    proxyEnabledCheckbox.checked = true;
+                }
+                if (savedProxyType) {
+                    proxyTypeSelect.value = savedProxyType;
+                }
+                if (savedProxy) {
+                    proxyInput.value = savedProxy;
+                }
+                toggleProxySettings();
+            });
         
-        if (savedProxyEnabled === 'true') {
-            proxyEnabledCheckbox.checked = true;
-        }
-        
-        if (savedProxyType) {
-            proxyTypeSelect.value = savedProxyType;
-        }
-        
-        if (savedProxy) {
-            proxyInput.value = savedProxy;
-        }
-        
-        toggleProxySettings();
-        
-        // Загружаем настройки с сервера (для DeepSeek ключа)
-        // Получаем полный ключ через специальный endpoint
+        // Загружаем DeepSeek ключ через специальный endpoint
         fetch('/api/settings/deepseek-key')
             .then(response => response.json())
             .then(data => {
@@ -247,7 +300,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch(error => {
-                console.error('Ошибка загрузки настроек:', error);
+                console.error('Ошибка загрузки DeepSeek ключа:', error);
             });
     }
     
@@ -267,7 +320,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Сохраняем прокси в localStorage
+        // Сохраняем прокси в localStorage (для обратной совместимости с веб-интерфейсом)
         localStorage.setItem('proxy-enabled', proxyEnabled ? 'true' : 'false');
         localStorage.setItem('proxy-type', proxyType);
         
@@ -277,14 +330,17 @@ document.addEventListener('DOMContentLoaded', function() {
             localStorage.removeItem('proxy');
         }
         
-        // Сохраняем DeepSeek ключ на сервере
+        // Сохраняем все настройки на сервере
         fetch('/api/settings', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                deepseek_api_key: deepseekApiKey || null
+                deepseek_api_key: deepseekApiKey || null,
+                proxy_enabled: proxyEnabled,
+                proxy_type: proxyType,
+                proxy: proxyEnabled && proxy ? proxy : null
             })
         })
         .then(response => response.json())

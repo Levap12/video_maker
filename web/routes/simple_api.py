@@ -908,11 +908,24 @@ def create_video():
         # Сохраняем настройки Shorts
         shorts_settings = data.get('shorts_settings', {})
         
+        # Получаем настройки прокси: сначала из запроса, если не указаны - из файла настроек
+        proxy = data.get('proxy')
+        proxy_type = data.get('proxy_type', 'socks5')
+        
+        if not proxy:
+            # Загружаем настройки прокси из файла
+            from web.routes.settings_api import load_settings
+            settings = load_settings()
+            if settings.get('proxy_enabled') and settings.get('proxy'):
+                proxy = settings['proxy']
+                proxy_type = settings.get('proxy_type', 'socks5')
+                logger.info(f"[{task_id}] Используются настройки прокси из файла настроек")
+        
         # Создаем workflow с auto_mode
         artifacts = {
             'url': url,
-            'proxy': data.get('proxy', ''),
-            'proxy_type': data.get('proxy_type', 'socks5'),
+            'proxy': proxy or '',
+            'proxy_type': proxy_type,
             'season': int(season) if season else None,
             'episode': int(episode) if episode else None,
             'translator_id': int(translator_id) if translator_id else None,
@@ -933,8 +946,8 @@ def create_video():
         start_initial_processing_task(
             task_id=task_id,
             url=url,
-            proxy=data.get('proxy'),
-            proxy_type=data.get('proxy_type', 'socks5'),
+            proxy=proxy,
+            proxy_type=proxy_type,
             season=int(season) if season else None,
             episode=int(episode) if episode else None,
             translator_id=int(translator_id) if translator_id else None,

@@ -49,6 +49,17 @@ def get_settings():
             masked_key = settings['deepseek_api_key'][:8] + '...' if len(settings['deepseek_api_key']) > 8 else '***'
             settings['deepseek_api_key'] = masked_key
         
+        # Не возвращаем полный прокси в ответе для безопасности, только маску
+        if 'proxy' in settings and settings['proxy']:
+            proxy = settings['proxy']
+            # Маскируем прокси: user:pass@host:port -> user:***@host:port
+            if '@' in proxy:
+                parts = proxy.split('@')
+                if ':' in parts[0]:
+                    user_pass = parts[0].split(':')
+                    masked_proxy = f"{user_pass[0]}:***@{parts[1]}"
+                    settings['proxy'] = masked_proxy
+        
         return jsonify({'success': True, 'settings': settings})
     except Exception as e:
         logger.error(f"Ошибка получения настроек: {e}")
@@ -73,6 +84,17 @@ def update_settings():
             else:
                 current_settings.pop('deepseek_api_key', None)
         
+        # Обновляем настройки прокси
+        if 'proxy_enabled' in data:
+            current_settings['proxy_enabled'] = bool(data['proxy_enabled'])
+        if 'proxy_type' in data:
+            current_settings['proxy_type'] = data['proxy_type']
+        if 'proxy' in data:
+            if data['proxy']:
+                current_settings['proxy'] = data['proxy']
+            else:
+                current_settings.pop('proxy', None)
+        
         # Сохраняем обновленные настройки
         if save_settings(current_settings):
             logger.info("Настройки успешно сохранены")
@@ -96,5 +118,43 @@ def get_deepseek_key():
         return jsonify({'success': True, 'key': key or ''})
     except Exception as e:
         logger.error(f"Ошибка получения DeepSeek ключа: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@settings_api_bp.route('/proxy', methods=['GET'])
+def get_proxy_settings():
+    """Получает настройки прокси (для использования в API)"""
+    try:
+        settings = load_settings()
+        proxy_enabled = settings.get('proxy_enabled', False)
+        proxy_type = settings.get('proxy_type', 'socks5')
+        proxy = settings.get('proxy', '')
+        
+        return jsonify({
+            'success': True,
+            'proxy_enabled': proxy_enabled,
+            'proxy_type': proxy_type,
+            'proxy': proxy if proxy_enabled and proxy else None
+        })
+    except Exception as e:
+        logger.error(f"Ошибка получения настроек прокси: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@settings_api_bp.route('/proxy-full', methods=['GET'])
+def get_proxy_full():
+    """Получает полные настройки прокси (для загрузки в форму настроек)"""
+    try:
+        settings = load_settings()
+        proxy_enabled = settings.get('proxy_enabled', False)
+        proxy_type = settings.get('proxy_type', 'socks5')
+        proxy = settings.get('proxy', '')
+        
+        return jsonify({
+            'success': True,
+            'proxy_enabled': proxy_enabled,
+            'proxy_type': proxy_type,
+            'proxy': proxy or ''
+        })
+    except Exception as e:
+        logger.error(f"Ошибка получения полных настроек прокси: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
