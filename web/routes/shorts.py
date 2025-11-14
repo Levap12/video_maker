@@ -17,6 +17,9 @@ from web.tasks.shorts_creation_task import start_shorts_creation_task
 from web.routes.tasks_api import generate_subtask_name
 from web.config import Config
 import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 shorts_bp = Blueprint('shorts', __name__, url_prefix='/api/shorts')
 
@@ -101,20 +104,17 @@ def create_shorts():
         task_id = data.get('task_id')
         clips_source_sub_task = data.get('clips_source', 'clipping') # Откуда брать клипы
         
+        logger.info(f"Запрос на создание Shorts: task_id={task_id}, clips_source={clips_source_sub_task}, data={data}")
+        
         if not task_id:
+            logger.warning("Запрос без task_id")
             return jsonify({'success': False, 'error': 'task_id обязателен'}), 400
 
         workflow = task_manager.get_task(task_id)
         if not workflow:
+            logger.warning(f"Workflow {task_id} не найден")
             return jsonify({'success': False, 'error': 'Workflow не найден'}), 404
 
-        # Ищем пути к клипам в указанной подзадаче
-        source_task = workflow.sub_tasks.get(clips_source_sub_task)
-        if not source_task or not source_task.outputs.get('clips'):
-            return jsonify({'success': False, 'error': f'Клипы не найдены в подзадаче \'{clips_source_sub_task}\'.'}), 400
-        
-        clips_paths = source_task.outputs['clips']
-        
         # Определяем file_info для привязки shorts к файлу
         file_info = None
         file_index = None
@@ -151,6 +151,32 @@ def create_shorts():
                                     file_info = fi
                                     file_index = idx
                                     break
+        
+        # Ищем пути к клипам
+        clips_paths = None
+        
+        # Если есть file_info и clips_source начинается с clipping_, ищем клипы в подзадаче файла
+        if file_info and clips_source_sub_task.startswith('clipping_'):
+            if file_info.get('sub_tasks') and file_info['sub_tasks'].get('clipping'):
+                clipping_subtask = file_info['sub_tasks']['clipping']
+                if clipping_subtask.get('outputs') and clipping_subtask['outputs'].get('clips'):
+                    clips_paths = clipping_subtask['outputs']['clips']
+                    logger.info(f"Найдены клипы в подзадаче clipping файла: {len(clips_paths)} клипов")
+        
+        # Если клипы не найдены в file_info, ищем в основной подзадаче workflow
+        if not clips_paths:
+            source_task = workflow.sub_tasks.get(clips_source_sub_task)
+            logger.info(f"Подзадача '{clips_source_sub_task}': найдена={source_task is not None}, outputs={source_task.outputs if source_task else None}")
+            
+            if not source_task:
+                logger.warning(f"Подзадача '{clips_source_sub_task}' не найдена. Доступные подзадачи: {list(workflow.sub_tasks.keys())}")
+                return jsonify({'success': False, 'error': f'Подзадача \'{clips_source_sub_task}\' не найдена. Доступные: {list(workflow.sub_tasks.keys())}'}), 400
+            
+            if not source_task.outputs or not source_task.outputs.get('clips'):
+                logger.warning(f"Клипы не найдены в подзадаче '{clips_source_sub_task}'. Outputs: {source_task.outputs}")
+                return jsonify({'success': False, 'error': f'Клипы не найдены в подзадаче \'{clips_source_sub_task}\'. Outputs: {source_task.outputs}'}), 400
+            
+            clips_paths = source_task.outputs['clips']
         
         # Собираем параметры с приоритетом: настройки файла > глобальные настройки > значения по умолчанию
         global_settings = _read_shorts_settings()
