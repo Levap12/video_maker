@@ -33,9 +33,11 @@ if env not in config:
 app_config = config.get(env, config['default'])
 
 # Создаем приложение
+# Отключаем автоматическую загрузку .env от Flask (загружаем вручную в run_web.py)
 app = Flask(__name__, 
            template_folder='templates',
-           static_folder='static')
+           static_folder='static',
+           load_dotenv=False)  # Отключаем автоматическую загрузку .env
 app.config.from_object(app_config)
 
 # Отключаем кэширование для разработки

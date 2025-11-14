@@ -208,6 +208,30 @@
         word-break: break-word;
     }
 
+    .prompt-id {
+        font-size: 0.75em;
+        color: #7f8c8d;
+        font-family: 'Courier New', monospace;
+        background: #ecf0f1;
+        padding: 4px 8px;
+        border-radius: 4px;
+        margin-top: 6px;
+        display: inline-block;
+        cursor: pointer;
+        transition: all 0.2s;
+        user-select: all;
+    }
+
+    .prompt-id:hover {
+        background: #d5dbdb;
+        color: #2c3e50;
+    }
+
+    .prompt-id::before {
+        content: '🆔 ID: ';
+        font-size: 0.9em;
+    }
+
     .prompt-actions {
         display: flex;
         gap: 8px;
@@ -831,9 +855,30 @@
             const header = document.createElement('div');
             header.className = 'prompt-item-header';
             
+            const titleContainer = document.createElement('div');
+            titleContainer.style.flex = '1';
+            
             const title = document.createElement('h4');
             title.textContent = p.name;
-            header.appendChild(title);
+            titleContainer.appendChild(title);
+            
+            // Добавляем ID промпта
+            const idDiv = document.createElement('div');
+            idDiv.className = 'prompt-id';
+            idDiv.textContent = p.id;
+            idDiv.setAttribute('title', 'Нажмите, чтобы скопировать ID');
+            idDiv.addEventListener('click', function(e) {
+                e.stopPropagation();
+                navigator.clipboard.writeText(p.id).then(() => {
+                    showToast(`ID промпта скопирован: ${p.id}`, 'success');
+                }).catch(err => {
+                    showToast('Ошибка при копировании ID', 'error');
+                    console.error('Copy error:', err);
+                });
+            });
+            titleContainer.appendChild(idDiv);
+            
+            header.appendChild(titleContainer);
 
             const actions = document.createElement('div');
             actions.className = 'prompt-actions';

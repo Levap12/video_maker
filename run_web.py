@@ -14,6 +14,21 @@ project_root = Path(__file__).parent
 os.chdir(project_root)
 sys.path.insert(0, str(project_root))
 
+# Отключаем автоматическую загрузку .env от Flask, если файл в неправильной кодировке
+# Flask автоматически загружает .env, но может упасть на неправильной кодировке
+# Мы загрузим переменные окружения вручную, если нужно
+try:
+    from dotenv import load_dotenv
+    env_file = project_root / '.env'
+    if env_file.exists():
+        try:
+            load_dotenv(env_file, encoding='utf-8')
+        except UnicodeDecodeError:
+            print("⚠️  Предупреждение: Файл .env имеет неправильную кодировку. Используйте UTF-8.")
+            print("   Пересоздайте файл .env на основе env.example")
+except ImportError:
+    pass  # python-dotenv не установлен, используем системные переменные окружения
+
 from web.app import app, socketio
 
 if __name__ == '__main__':
