@@ -114,7 +114,7 @@ def create_shorts():
         if not workflow:
             logger.warning(f"Workflow {task_id} не найден")
             return jsonify({'success': False, 'error': 'Workflow не найден'}), 404
-
+        
         # Определяем file_info для привязки shorts к файлу
         file_info = None
         file_index = None

@@ -77,5 +77,5 @@ def setup_logging():
     # Применяем фильтр к werkzeug логгеру
     werkzeug_logger = logging.getLogger('werkzeug')
     werkzeug_logger.addFilter(https_filter)
-    
+
     root_logger.info("Система логирования настроена (файл, консоль, WebSocket).")

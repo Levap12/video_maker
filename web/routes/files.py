@@ -139,16 +139,41 @@ def list_shorts():
 @files_bp.route('/list/banners')
 def list_banners():
     """Список всех баннеров"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     banners = []
-    if not Config.BANER_DIR.exists():
-        return jsonify({'success': True, 'banners': [], 'count': 0})
+    banner_dir = Config.BANER_DIR
+    
+    logger.info(f"Поиск баннеров в директории: {banner_dir}")
+    logger.info(f"Директория существует: {banner_dir.exists()}")
+    
+    if not banner_dir.exists():
+        logger.warning(f"Директория баннеров не существует: {banner_dir}")
+        return jsonify({'success': True, 'banners': [], 'count': 0, 'message': f'Директория {banner_dir} не найдена'})
 
-    for ext in ['.mp4', '.mov', '.avi', '.mkv', '.webm']:
-        for banner_file in sorted(Config.BANER_DIR.glob(f'*{ext}')):
-            banners.append({
-                'name': banner_file.name,
-                'path': str(banner_file)
-            })
+    # Проверяем все файлы в директории
+    all_files = list(banner_dir.iterdir())
+    logger.info(f"Всего файлов в директории: {len(all_files)}")
+    for f in all_files:
+        logger.info(f"  - {f.name} (is_file: {f.is_file()}, suffix: {f.suffix})")
+
+    # Поддерживаемые расширения (без учета регистра)
+    supported_extensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm']
+    supported_extensions_lower = [ext.lower() for ext in supported_extensions]
+    
+    # Ищем файлы с нужными расширениями (case-insensitive)
+    for banner_file in sorted(banner_dir.iterdir()):
+        if banner_file.is_file():
+            file_ext = banner_file.suffix.lower()
+            if file_ext in supported_extensions_lower:
+                banners.append({
+                    'name': banner_file.name,
+                    'path': str(banner_file)
+                })
+                logger.info(f"Добавлен баннер: {banner_file.name} -> {banner_file}")
+    
+    logger.info(f"Всего найдено баннеров: {len(banners)}")
     
     return jsonify({
         'success': True,
