@@ -603,11 +603,55 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (subTask.outputs) {
             // Для остальных подзадач - стандартная логика
             for (const [key, value] of Object.entries(subTask.outputs)) {
-                if (typeof value === 'string' && value.includes('\\')) { // Likely a file path
-                    const fileName = value.split('\\').pop();
-                    filesHtml += `<a href="/api/files/any/${escapeHtml(fileName)}" target="_blank">${escapeHtml(key)}: ${escapeHtml(fileName)}</a>`;
+                if (typeof value === 'string') {
+                    // Обрабатываем пути с / или \
+                    const separator = value.includes('/') ? '/' : '\\';
+                    const fileName = value.split(separator).pop();
+                    // Определяем тип файла по ключу или расширению
+                    let downloadUrl = '';
+                    if (key === 'shorts' || fileName.endsWith('.mp4')) {
+                        // Для Shorts используем специальный endpoint
+                        if (value.includes('shorts_output') || key === 'shorts') {
+                            downloadUrl = `/api/files/short/${encodeURIComponent(fileName)}`;
+                        } else if (value.includes('clips')) {
+                            downloadUrl = `/api/files/clip/${encodeURIComponent(fileName)}`;
+                        } else if (value.includes('downloads')) {
+                            downloadUrl = `/api/files/video/${encodeURIComponent(fileName)}`;
+                        } else {
+                            downloadUrl = `/api/files/any/${encodeURIComponent(fileName)}`;
+                        }
+                    } else {
+                        downloadUrl = `/api/files/any/${encodeURIComponent(fileName)}`;
+                    }
+                    filesHtml += `<a href="${downloadUrl}" target="_blank" class="file-link">📥 ${escapeHtml(key)}: ${escapeHtml(fileName)}</a>`;
                 } else if (Array.isArray(value)) {
-                     filesHtml += `<p><strong>${key}:</strong> ${value.length} элементов</p>`;
+                    // Для массивов файлов создаем ссылки для каждого файла
+                    if (value.length > 0 && typeof value[0] === 'string') {
+                        filesHtml += `<p><strong>${escapeHtml(key)}:</strong> ${value.length} ${value.length === 1 ? 'файл' : 'файлов'}</p>`;
+                        filesHtml += '<div class="file-list">';
+                        value.forEach(filePath => {
+                            const separator = filePath.includes('/') ? '/' : '\\';
+                            const fileName = filePath.split(separator).pop();
+                            let downloadUrl = '';
+                            // Определяем тип файла по пути
+                            if (filePath.includes('shorts_output') || key === 'shorts') {
+                                downloadUrl = `/api/files/short/${encodeURIComponent(fileName)}`;
+                            } else if (filePath.includes('clips') || key === 'clips') {
+                                downloadUrl = `/api/files/clip/${encodeURIComponent(fileName)}`;
+                            } else if (filePath.includes('downloads')) {
+                                downloadUrl = `/api/files/video/${encodeURIComponent(fileName)}`;
+                            } else {
+                                downloadUrl = `/api/files/any/${encodeURIComponent(fileName)}`;
+                            }
+                            filesHtml += `<a href="${downloadUrl}" target="_blank" class="file-link">📥 ${escapeHtml(fileName)}</a>`;
+                        });
+                        filesHtml += '</div>';
+                    } else if (value.length === 0) {
+                        // Пустой массив (например, failed_shorts)
+                        filesHtml += `<p><strong>${escapeHtml(key)}:</strong> 0 элементов</p>`;
+                    } else {
+                        filesHtml += `<p><strong>${escapeHtml(key)}:</strong> ${value.length} элементов</p>`;
+                    }
                 }
             }
         }

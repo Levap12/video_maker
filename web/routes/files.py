@@ -170,3 +170,40 @@ def get_ai_clips(filename):
         clips_data = json.load(f)
         
     return jsonify({'success': True, 'clips': clips_data})
+
+
+@files_bp.route('/any/<filename>')
+def download_any(filename):
+    """Универсальный endpoint для скачивания файлов из разных директорий"""
+    # Пробуем найти файл в разных директориях
+    search_dirs = [
+        Config.SHORTS_OUTPUT_DIR,
+        Config.CLIPS_DIR,
+        Config.DOWNLOADS_DIR,
+        Config.OUTPUT_DIR,
+        Config.DATA_DIR / 'transcriptions',
+        Config.DATA_DIR / 'ai_clips'
+    ]
+    
+    for directory in search_dirs:
+        file_path = directory / filename
+        if file_path.exists():
+            # Определяем MIME тип по расширению
+            mimetype = 'application/octet-stream'
+            if filename.endswith('.mp4'):
+                mimetype = 'video/mp4'
+            elif filename.endswith('.mp3'):
+                mimetype = 'audio/mpeg'
+            elif filename.endswith('.json'):
+                mimetype = 'application/json'
+            elif filename.endswith('.txt'):
+                mimetype = 'text/plain'
+            
+            return send_file(
+                str(file_path),
+                as_attachment=True,
+                download_name=filename,
+                mimetype=mimetype
+            )
+    
+    return jsonify({'error': 'Файл не найден'}), 404
