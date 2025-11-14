@@ -180,6 +180,12 @@
             <div class="form-help">Формат: user:pass@host:port (для SOCKS5 и HTTPS)</div>
         </div>
         
+        <div class="form-group" style="margin-top: 30px;">
+            <label for="deepseek-api-key">DeepSeek API ключ:</label>
+            <input type="password" id="deepseek-api-key" class="form-input" placeholder="sk-...">
+            <div class="form-help">API ключ для DeepSeek (используется для генерации AI нарезки). Если не указан, используется ключ из переменной окружения.</div>
+        </div>
+        
         <button id="btn-save-settings" class="btn">💾 Сохранить настройки</button>
         <div id="settings-status" class="status-message hidden"></div>
     </div>
@@ -193,6 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const proxyTypeSelect = document.getElementById('proxy-type');
     const proxyInput = document.getElementById('proxy');
     const proxySettings = document.getElementById('proxy-settings');
+    const deepseekApiKeyInput = document.getElementById('deepseek-api-key');
     const btnSaveSettings = document.getElementById('btn-save-settings');
     const settingsStatus = document.getElementById('settings-status');
     
@@ -211,6 +218,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Загружаем сохраненные настройки при загрузке страницы
     function loadSettings() {
+        // Загружаем из localStorage (для прокси)
         const savedProxyEnabled = localStorage.getItem('proxy-enabled');
         const savedProxyType = localStorage.getItem('proxy-type');
         const savedProxy = localStorage.getItem('proxy');
@@ -228,6 +236,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         toggleProxySettings();
+        
+        // Загружаем настройки с сервера (для DeepSeek ключа)
+        // Получаем полный ключ через специальный endpoint
+        fetch('/api/settings/deepseek-key')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.key) {
+                    deepseekApiKeyInput.value = data.key;
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка загрузки настроек:', error);
+            });
     }
     
     // Сохраняем настройки
@@ -235,6 +256,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const proxyEnabled = proxyEnabledCheckbox.checked;
         const proxyType = proxyTypeSelect.value;
         const proxy = proxyInput.value.trim();
+        const deepseekApiKey = deepseekApiKeyInput.value.trim();
         
         // Валидация прокси (если включен и указан)
         if (proxyEnabled && proxy) {
@@ -245,7 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Сохраняем в localStorage
+        // Сохраняем прокси в localStorage
         localStorage.setItem('proxy-enabled', proxyEnabled ? 'true' : 'false');
         localStorage.setItem('proxy-type', proxyType);
         
@@ -255,7 +277,27 @@ document.addEventListener('DOMContentLoaded', function() {
             localStorage.removeItem('proxy');
         }
         
-        showStatus('success', 'Настройки успешно сохранены!');
+        // Сохраняем DeepSeek ключ на сервере
+        fetch('/api/settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                deepseek_api_key: deepseekApiKey || null
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showStatus('success', 'Настройки успешно сохранены!');
+            } else {
+                showStatus('error', 'Ошибка сохранения настроек: ' + (data.error || 'Неизвестная ошибка'));
+            }
+        })
+        .catch(error => {
+            showStatus('error', 'Ошибка сети при сохранении настроек: ' + error);
+        });
         
         // Очищаем сообщение через 3 секунды
         setTimeout(() => {

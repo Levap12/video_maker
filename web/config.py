@@ -43,15 +43,33 @@ class Config:
     
     # AI сервисы
     OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
-    DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY', '')  # Установите через переменную окружения
+    # DeepSeek ключ: сначала из файла настроек, потом из переменной окружения
+    _deepseek_key_from_env = os.environ.get('DEEPSEEK_API_KEY', '')
+    DEEPSEEK_API_KEY = _deepseek_key_from_env  # Будет обновлено методом get_deepseek_api_key()
     AI_MODEL = os.environ.get('AI_MODEL', 'gpt-3.5-turbo')
+    
+    @staticmethod
+    def get_deepseek_api_key():
+        """Получает DeepSeek API ключ: сначала из файла настроек, потом из переменной окружения"""
+        try:
+            settings_file = Config.DATA_DIR / 'settings.json'
+            if settings_file.exists():
+                import json
+                with open(settings_file, 'r', encoding='utf-8') as f:
+                    settings = json.load(f)
+                    if settings.get('deepseek_api_key'):
+                        return settings['deepseek_api_key']
+        except Exception:
+            pass
+        # Если в файле нет, используем из переменной окружения
+        return Config._deepseek_key_from_env
     
     # Google Colab API
     COLAB_API_TOKEN = os.environ.get('COLAB_API_TOKEN', '')
     
     # Google Colab автоматизация через Camoufox
-    # По умолчанию включена, можно отключить через переменную окружения COLAB_AUTOMATION_ENABLED=false
-    COLAB_AUTOMATION_ENABLED = os.environ.get('COLAB_AUTOMATION_ENABLED', 'true').lower() == 'true'
+    # По умолчанию отключена, можно включить через переменную окружения COLAB_AUTOMATION_ENABLED=true
+    COLAB_AUTOMATION_ENABLED = os.environ.get('COLAB_AUTOMATION_ENABLED', 'false').lower() == 'true'
     COLAB_PROFILE_PATH = os.environ.get('COLAB_PROFILE_PATH')
     if COLAB_PROFILE_PATH:
         COLAB_PROFILE_PATH = Path(COLAB_PROFILE_PATH)

@@ -15,7 +15,8 @@ class AIService:
     """Класс для работы с DeepSeek API."""
 
     def __init__(self, api_key=None):
-        self.api_key = api_key or Config.DEEPSEEK_API_KEY
+        # Используем переданный ключ, или из настроек, или из переменной окружения
+        self.api_key = api_key or Config.get_deepseek_api_key()
         self.api_url = "https://api.deepseek.com/chat/completions"
 
     def _get_prompt_by_id(self, prompt_type: str, prompt_id: str) -> str:

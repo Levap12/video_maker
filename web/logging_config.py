@@ -3,6 +3,23 @@ import logging.handlers
 from pathlib import Path
 from concurrent_log_handler import ConcurrentRotatingFileHandler # Импортируем новый обработчик
 
+class HTTPSRequestFilter(logging.Filter):
+    """Фильтр для игнорирования ошибок HTTPS запросов к HTTP серверу"""
+    def filter(self, record):
+        # Игнорируем ошибки werkzeug связанные с HTTPS запросами
+        if hasattr(record, 'message'):
+            msg = str(record.message)
+            # Проверяем на типичные признаки HTTPS запроса к HTTP серверу
+            # "Bad request version" - это типичная ошибка при попытке HTTPS к HTTP серверу
+            if 'Bad request version' in msg or ('code 400' in msg and 'message Bad request version' in msg):
+                return False
+        # Также проверяем args, так как werkzeug может логировать по-другому
+        if hasattr(record, 'args') and record.args:
+            for arg in record.args:
+                if isinstance(arg, str) and 'Bad request version' in arg:
+                    return False
+        return True
+
 class SocketIOHandler(logging.Handler):
     """Кастомный обработчик для отправки логов через Socket.IO."""
     def emit(self, record):
@@ -54,4 +71,11 @@ def setup_logging():
     socketio_handler.setFormatter(formatter) # Используем тот же форматтер
     root_logger.addHandler(socketio_handler)
 
+    # Фильтруем ошибки HTTPS запросов к HTTP серверу (боты/сканеры)
+    https_filter = HTTPSRequestFilter()
+    
+    # Применяем фильтр к werkzeug логгеру
+    werkzeug_logger = logging.getLogger('werkzeug')
+    werkzeug_logger.addFilter(https_filter)
+    
     root_logger.info("Система логирования настроена (файл, консоль, WebSocket).")

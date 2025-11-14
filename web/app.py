@@ -57,6 +57,7 @@ from web.routes.files import files_bp
 from web.routes.tasks_api import tasks_api_bp
 from web.routes.prompts_api import prompts_api_bp # Импортируем новый blueprint
 from web.routes.simple_api import simple_api_bp # Импортируем Simple API blueprint
+from web.routes.settings_api import settings_api_bp # Импортируем Settings API blueprint
 app.register_blueprint(main_bp)
 app.register_blueprint(colab_bp)
 app.register_blueprint(processing_bp)
@@ -66,6 +67,7 @@ app.register_blueprint(files_bp)
 app.register_blueprint(tasks_api_bp)
 app.register_blueprint(prompts_api_bp) # Регистрируем новый blueprint
 app.register_blueprint(simple_api_bp) # Регистрируем Simple API blueprint
+app.register_blueprint(settings_api_bp) # Регистрируем Settings API blueprint
 
 @app.route('/')
 def index():
