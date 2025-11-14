@@ -311,8 +311,11 @@ def collect_ready_videos(workflow: WorkflowTask) -> List[Dict]:
 def _start_colab_transcription_automation(task_id: str):
     """
     Вспомогательная функция для автоматического запуска Colab транскрипции через Camoufox.
-    Запускается в фоновом потоке, чтобы не блокировать основной workflow.
+    ЗАКРЫТА: Colab автоматизация отключена.
     """
+    logger.warning(f"[{task_id}] Попытка запуска Colab автоматизации, но она отключена")
+    return  # Colab автоматизация отключена
+    
     def run_automation():
         try:
             workflow = task_manager.get_task(task_id)
@@ -555,22 +558,10 @@ def auto_continue_workflow(task_id: str, force_check: bool = False):
         try:
             sub_tasks = workflow.sub_tasks
             
-            # Этап 0: initial_processing завершена → запускаем Colab транскрипцию (если включена автоматизация)
+            # Colab автоматизация отключена - удален код автоматического запуска
             initial_processing = sub_tasks.get('initial_processing')
             transcription = sub_tasks.get('transcription')
             ai_generation = sub_tasks.get('ai_clip_generation')
-            
-            if (initial_processing and initial_processing.status == TaskStatus.COMPLETED and
-                not transcription and Config.COLAB_AUTOMATION_ENABLED):
-                # Запускаем автоматизацию Colab для транскрипции
-                logger.info(f"[{task_id}] Auto-continue: запуск Colab автоматизации для транскрипции")
-                try:
-                    _start_colab_transcription_automation(task_id)
-                    logger.info(f"[{task_id}] Colab автоматизация запущена")
-                    return True
-                except Exception as e:
-                    logger.error(f"[{task_id}] Ошибка при автоматическом запуске Colab автоматизации: {e}", exc_info=True)
-                    return False
             
             # Этап 1: Транскрипция завершена → запускаем AI генерацию
             if (initial_processing and initial_processing.status == TaskStatus.COMPLETED and

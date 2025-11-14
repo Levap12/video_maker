@@ -115,20 +115,10 @@ def start_initial_processing_task(task_id: str, url: str, proxy: str = None,
             )
             task_manager.update_workflow_status(task_id, TaskStatus.RUNNING, message="Начальная обработка завершена. Ожидание следующих шагов.")
             
-            # Проверяем, нужно ли запускать автоматизацию Colab
+            # Colab автоматизация отключена - удален код запуска автоматизации
             workflow = task_manager.get_task(task_id)
             if workflow:
-                # Если включена автоматизация Colab, запускаем её напрямую
-                # Config уже импортирован глобально в начале файла
-                if Config.COLAB_AUTOMATION_ENABLED:
-                    try:
-                        logger.info(f"[{task_id}] Запуск Colab автоматизации после завершения initial_processing")
-                        from web.routes.simple_api import _start_colab_transcription_automation
-                        _start_colab_transcription_automation(task_id)
-                    except Exception as e:
-                        logger.error(f"[{task_id}] Ошибка при запуске Colab автоматизации: {e}", exc_info=True)
-                
-                # Также проверяем auto_mode для других автоматических переходов
+                # Проверяем auto_mode для других автоматических переходов
                 if workflow.artifacts.get('auto_mode', False):
                     try:
                         from web.routes.simple_api import auto_continue_workflow
