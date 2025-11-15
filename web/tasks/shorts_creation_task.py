@@ -47,12 +47,12 @@ def start_shorts_creation_task(workflow_id: str, clips_paths: list, sub_task_nam
             
             if workflow:
                 # Ищем подзадачу clipping, которая содержит эти клипы
-                for sub_task_name, sub_task in workflow.sub_tasks.items():
-                    if sub_task_name.startswith('clipping_') and sub_task.outputs:
-                        sub_task_clips = sub_task.outputs.get('clips', [])
+                for clipping_task_name, clipping_task in workflow.sub_tasks.items():
+                    if clipping_task_name.startswith('clipping_') and clipping_task.outputs:
+                        sub_task_clips = clipping_task.outputs.get('clips', [])
                         # Проверяем, что это та же подзадача (содержит те же клипы)
                         if set(sub_task_clips) == set(clips_paths):
-                            clips_metadata = sub_task.outputs.get('clips_metadata', {})
+                            clips_metadata = clipping_task.outputs.get('clips_metadata', {})
                             break
             
             successful_shorts, failed_clips = [], []
