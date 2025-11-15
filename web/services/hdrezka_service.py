@@ -187,14 +187,24 @@ class HdRezkaService:
                 rezka = session.get(url)
             except TypeError as te:
                 # HdRezkaApi иногда пытается бросить неправильное исключение
-                logger.error(f"TypeError при session.get: {te}")
+                error_msg = str(te)
+                logger.error(f"TypeError при session.get: {error_msg}")
+                logger.error(f"Тип ошибки: {type(te).__name__}, Аргументы: {te.args if hasattr(te, 'args') else 'N/A'}")
+                # Проверяем, не связано ли это с проблемой в HdRezkaApi
+                if "exceptions must derive from BaseException" in error_msg:
+                    logger.error("Обнаружена проблема в HdRezkaApi: попытка создать некорректное исключение")
+                    return {
+                        'success': False,
+                        'error': 'Ошибка библиотеки HdRezkaApi при работе с прокси. Попробуйте другой прокси или проверьте настройки.'
+                    }
                 return {
                     'success': False,
-                    'error': f'Ошибка при получении страницы (TypeError): {str(te)}'
+                    'error': f'Ошибка при получении страницы (TypeError): {error_msg}'
                 }
             except Exception as e:
                 # Ловим любые другие исключения от HdRezkaApi
                 logger.error(f"Исключение при session.get: {type(e).__name__}: {e}")
+                logger.error(f"Детали исключения: {repr(e)}")
                 return {
                     'success': False,
                     'error': f'Ошибка при получении страницы: {str(e)}'
