@@ -37,7 +37,9 @@ def start_initial_processing_task(task_id: str, url: str, proxy: str = None,
             )
             logger.info(f"[{task_id}] Подзадача '{sub_task_name}' создана и сохранена.")
 
+            logger.info(f"[{task_id}] Создание HdRezkaService с proxy={proxy}, proxy_type={proxy_type}")
             service = HdRezkaService(proxy=proxy, proxy_type=proxy_type)
+            logger.info(f"[{task_id}] HdRezkaService создан успешно")
             
             logger.info(f"[{task_id}] Параметры: season={season} (type: {type(season).__name__}), episode={episode} (type: {type(episode).__name__}), translator_id={translator_id}, quality={quality}")
             

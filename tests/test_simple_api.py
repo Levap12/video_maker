@@ -16,7 +16,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # Настройки
-BASE_URL = "http://localhost:5000"
+BASE_URL = "http://62.60.179.199:5000"
 API_BASE = f"{BASE_URL}/api/v1/video"
 
 # Цвета для вывода в консоль
@@ -112,7 +112,7 @@ def get_prompts():
         return None, None
 
 
-def test_create_video(url, season, episode, system_prompt_id, user_prompt_id, quality="720p"):
+def test_create_video(url, season, episode, system_prompt_id, user_prompt_id, quality="720p", translator_id=66):
     """Тестирует создание задачи на обработку видео"""
     print_header("Создание задачи на обработку видео")
     
@@ -121,14 +121,11 @@ def test_create_video(url, season, episode, system_prompt_id, user_prompt_id, qu
         "season": season,
         "episode": episode,
         "quality": quality,
-        "translator_id": 66,
+        "translator_id": translator_id,
         "system_prompt_id": system_prompt_id,
         "user_prompt_id": user_prompt_id,
         "shorts_settings": {
-            "watermark_text": "@TestChannel",
-            "watermark_color": "gray",
-            "watermark_font_size": 72,
-            "watermark_bottom_offset": 180,
+            "banner_path": "baner/IMG_2201.MOV",
             "banner_offset": 100,
             "height_scale": 2.0
         }
@@ -329,35 +326,30 @@ def main():
         print_error("\nНе удалось подключиться к серверу. Завершение теста.")
         return
     
-    # Шаг 2: Получение промптов
-    system_prompt_id, user_prompt_id = get_prompts()
-    if not system_prompt_id or not user_prompt_id:
-        print_error("\nНе удалось получить промпты. Завершение теста.")
-        print_info("Создайте промпты через веб-интерфейс: http://localhost:5000/prompts")
-        return
+    # Шаг 2: Используем заданные промпты
+    system_prompt_id = "4e2063e1-bf22-40dc-aa4e-468fe0bc352f"
+    user_prompt_id = "cef8455c-7b88-4e28-aec5-e138ec904fec"
+    
+    print_header("Используемые промпты")
+    print_info(f"Системный промпт: {system_prompt_id}")
+    print_info(f"Пользовательский промпт: {user_prompt_id}")
     
     # Шаг 3: Параметры для теста
     print_header("Параметры теста")
     
-    # Можно изменить эти параметры
-    test_url = input(f"{Colors.YELLOW}Введите URL HDRezka (или Enter для пропуска теста): {Colors.RESET}").strip()
-    if not test_url:
-        print_warning("Тест пропущен (не указан URL)")
-        return
+    # Автоматические параметры
+    test_url = "https://hdrezka.me/cartoons/comedy/2136-rik-i-morti-2013-latest.html"
+    season = 1
+    episode = 2
+    quality = "720p"
+    translator_id = 66
     
-    try:
-        season = int(input(f"{Colors.YELLOW}Введите номер сезона (или Enter для пропуска): {Colors.RESET}").strip() or "0")
-        episode = int(input(f"{Colors.YELLOW}Введите номер серии (или Enter для пропуска): {Colors.RESET}").strip() or "0")
-    except ValueError:
-        season = 0
-        episode = 0
-    
-    if season == 0 or episode == 0:
-        print_warning("Сезон или серия не указаны, будет использован режим фильма")
-        season = None
-        episode = None
-    
-    quality = input(f"{Colors.YELLOW}Введите качество (360p/720p/1080p, по умолчанию 720p): {Colors.RESET}").strip() or "720p"
+    print_info(f"URL: {test_url}")
+    print_info(f"Сезон: {season}, Серия: {episode}")
+    print_info(f"Качество: {quality}")
+    print_info(f"Озвучка ID: {translator_id}")
+    print_info(f"Баннер: baner/IMG_2201.MOV")
+    print_info(f"Водяной знак: не используется")
     
     # Шаг 4: Создание задачи
     task_id = test_create_video(
@@ -366,7 +358,8 @@ def main():
         episode=episode,
         system_prompt_id=system_prompt_id,
         user_prompt_id=user_prompt_id,
-        quality=quality
+        quality=quality,
+        translator_id=translator_id
     )
     
     if not task_id:

@@ -6,6 +6,7 @@
 """
 
 import re
+import logging
 from typing import Optional, Dict, List, Tuple
 from urllib.parse import urlparse
 from pathlib import Path
@@ -16,6 +17,8 @@ try:
     from HdRezkaApi.search import HdRezkaSearch
 except ImportError:
     raise ImportError("HdRezkaApi не установлен! Установите: pip install HdRezkaApi")
+
+logger = logging.getLogger(__name__)
 
 
 class HdRezkaService:
@@ -80,14 +83,26 @@ class HdRezkaService:
         Анализирует контент по URL и возвращает информацию
         """
         try:
+            logger.info(f"Начало анализа контента: {url}")
+            logger.info(f"Используется прокси: {bool(self.proxy)} ({self.proxy if self.proxy else 'Нет'})")
+            
             session = self.get_session(url)
+            logger.info(f"Сессия создана для origin: {self._get_origin_from_url(url)}")
+            
+            logger.info(f"Выполнение session.get({url})...")
             rezka = session.get(url)
+            logger.info(f"session.get завершен. rezka.ok = {rezka.ok}")
             
             if not rezka.ok:
+                error_msg = str(rezka.exception)
+                logger.error(f"Ошибка rezka.ok=False: {error_msg}")
+                logger.error(f"Тип исключения: {type(rezka.exception).__name__}")
                 return {
                     'success': False,
-                    'error': str(rezka.exception)
+                    'error': error_msg
                 }
+            
+            logger.info(f"Успешно получен контент: {rezka.name}")
             
             result = {
                 'success': True,
@@ -105,9 +120,12 @@ class HdRezkaService:
                 series_info = self._extract_series_info_from_api(rezka)
                 result['series_info'] = series_info if series_info else {}
             
+            logger.info(f"Анализ контента завершен успешно")
             return result
             
         except Exception as e:
+            logger.exception(f"ИСКЛЮЧЕНИЕ в analyze_content: {e}")
+            logger.error(f"Тип исключения: {type(e).__name__}")
             return {
                 'success': False,
                 'error': str(e)
