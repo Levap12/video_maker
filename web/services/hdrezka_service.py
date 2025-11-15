@@ -72,12 +72,22 @@ class HdRezkaService:
         """Получает или создает сессию HdRezkaSession для указанного URL."""
         origin = self._get_origin_from_url(url)
         if origin not in self.sessions:
-            # Создаем сессию с таймаутом для прокси
+            # Создаем сессию
             session = HdRezkaSession(
                 proxy=self.proxy,
-                origin=origin,
-                timeout=30  # Таймаут соединения 30 секунд
+                origin=origin
             )
+            
+            # Устанавливаем таймаут для requests сессии внутри HdRezkaSession
+            if hasattr(session, '_session'):
+                # Патчим метод request для добавления таймаута
+                original_request = session._session.request
+                def request_with_timeout(*args, **kwargs):
+                    if 'timeout' not in kwargs:
+                        kwargs['timeout'] = 30  # Таймаут 30 секунд
+                    return original_request(*args, **kwargs)
+                session._session.request = request_with_timeout
+                logger.info(f"Установлен таймаут 30 секунд для сессии {origin}")
             
             # Добавляем заголовки браузера, чтобы сайт не блокировал запросы
             if hasattr(session, '_session') and hasattr(session._session, 'headers'):
@@ -92,7 +102,7 @@ class HdRezkaService:
                 logger.info(f"Добавлены заголовки браузера для сессии {origin}")
             
             self.sessions[origin] = session
-            logger.info(f"Создана сессия для {origin} с таймаутом 30 секунд")
+            logger.info(f"Создана сессия для {origin}")
         return self.sessions[origin]
     
     def analyze_content(self, url: str) -> Dict:
