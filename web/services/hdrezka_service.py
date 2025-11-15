@@ -7,8 +7,9 @@
 
 import re
 import logging
+import base64
 from typing import Optional, Dict, List, Tuple
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
 from pathlib import Path
 
 try:
@@ -19,6 +20,64 @@ except ImportError:
     raise ImportError("HdRezkaApi не установлен! Установите: pip install HdRezkaApi")
 
 logger = logging.getLogger(__name__)
+
+# Патчим requests для установки таймаута по умолчанию и правильной обработки прокси
+import requests
+from requests.adapters import HTTPAdapter
+from urllib.parse import urlparse
+
+# Создаем кастомный HTTPAdapter для правильной обработки аутентификации прокси
+class ProxyAuthHTTPAdapter(HTTPAdapter):
+    """HTTPAdapter с явной поддержкой аутентификации прокси"""
+    
+    def proxy_headers(self, proxy):
+        """Переопределяем метод для явной установки Proxy-Authorization"""
+        headers = {}
+        if proxy:
+            try:
+                parsed = urlparse(proxy)
+                if parsed.username and parsed.password:
+                    # Создаем заголовок Proxy-Authorization
+                    import base64
+                    auth_string = f"{parsed.username}:{parsed.password}"
+                    auth_bytes = auth_string.encode('utf-8')
+                    auth_b64 = base64.b64encode(auth_bytes).decode('utf-8')
+                    headers['Proxy-Authorization'] = f'Basic {auth_b64}'
+                    logger.debug(f"Установлен Proxy-Authorization для прокси {parsed.hostname}:{parsed.port}")
+            except Exception as e:
+                logger.warning(f"Не удалось установить Proxy-Authorization: {e}")
+        return headers
+
+# Патчим Session для использования нашего адаптера
+_original_init = requests.Session.__init__
+def _patched_session_init(self, *args, **kwargs):
+    _original_init(self, *args, **kwargs)
+    # Заменяем HTTPAdapter на наш кастомный
+    self.mount('http://', ProxyAuthHTTPAdapter())
+    self.mount('https://', ProxyAuthHTTPAdapter())
+requests.Session.__init__ = _patched_session_init
+
+# Устанавливаем таймаут по умолчанию
+_original_request = requests.Session.request
+def _patched_request(self, *args, **kwargs):
+    if 'timeout' not in kwargs:
+        kwargs['timeout'] = 30  # Таймаут 30 секунд по умолчанию
+    return _original_request(self, *args, **kwargs)
+requests.Session.request = _patched_request
+
+# Также патчим функции requests.get/post напрямую
+_original_get = requests.get
+_original_post = requests.post
+def _patched_get(*args, **kwargs):
+    if 'timeout' not in kwargs:
+        kwargs['timeout'] = 30
+    return _original_get(*args, **kwargs)
+def _patched_post(*args, **kwargs):
+    if 'timeout' not in kwargs:
+        kwargs['timeout'] = 30
+    return _original_post(*args, **kwargs)
+requests.get = _patched_get
+requests.post = _patched_post
 
 
 class HdRezkaService:
@@ -53,14 +112,24 @@ class HdRezkaService:
         user, password, host, port = match.groups()
         
         # Формируем URL в зависимости от типа прокси
-        if proxy_type.lower() == 'https':
+        # ВАЖНО: Для HTTP CONNECT прокси (HTTPS трафик через HTTP прокси) используется http:// в URL
+        # Это стандарт протокола - HTTP CONNECT метод работает через HTTP, даже для HTTPS трафика
+        # requests автоматически обрабатывает аутентификацию из URL
+        if proxy_type.lower() in ['https', 'http']:
+            # HTTP/HTTPS прокси используют http:// в URL (HTTP CONNECT метод)
+            # НЕ кодируем username/password - requests сделает это автоматически
             proxy_url = f'http://{user}:{password}@{host}:{port}'
+            proxy_url_http = proxy_url
+            proxy_url_https = proxy_url  # Для HTTPS трафика тоже используется http:// (CONNECT метод)
         else:  # socks5 по умолчанию
-            proxy_url = f'socks5://{user}:{password}@{host}:{port}'
+            proxy_url_http = f'socks5://{user}:{password}@{host}:{port}'
+            proxy_url_https = f'socks5://{user}:{password}@{host}:{port}'
+        
+        logger.debug(f"Сформирован прокси URL: http={proxy_url_http[:50]}..., https={proxy_url_https[:50]}...")
         
         return {
-            'http': proxy_url,
-            'https': proxy_url
+            'http': proxy_url_http,
+            'https': proxy_url_https
         }
 
     def _get_origin_from_url(self, url: str) -> str:
@@ -72,37 +141,34 @@ class HdRezkaService:
         """Получает или создает сессию HdRezkaSession для указанного URL."""
         origin = self._get_origin_from_url(url)
         if origin not in self.sessions:
-            # Создаем сессию
+            # Подготавливаем заголовки браузера
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1'
+            }
+            
+            # Примечание: requests автоматически извлекает аутентификацию из URL прокси
+            # и создает заголовок Proxy-Authorization через метод proxy_headers в HTTPAdapter
+            # Но для некоторых прокси может потребоваться явная установка заголовка
+            # Пока не добавляем Proxy-Authorization в headers, так как requests должен обработать это автоматически
+            # Если проблема сохранится, можно добавить явную установку через urllib3
+            
+            # Создаем сессию с заголовками
+            # Таймаут уже установлен через патч requests на уровне модуля
+            logger.info(f"Создание HdRezkaSession с proxy={self.proxy}, origin={origin}")
             session = HdRezkaSession(
                 proxy=self.proxy,
-                origin=origin
+                origin=origin,
+                headers=headers  # Передаем заголовки напрямую в HdRezkaSession
             )
             
-            # Устанавливаем таймаут для requests сессии внутри HdRezkaSession
-            if hasattr(session, '_session'):
-                # Патчим метод request для добавления таймаута
-                original_request = session._session.request
-                def request_with_timeout(*args, **kwargs):
-                    if 'timeout' not in kwargs:
-                        kwargs['timeout'] = 30  # Таймаут 30 секунд
-                    return original_request(*args, **kwargs)
-                session._session.request = request_with_timeout
-                logger.info(f"Установлен таймаут 30 секунд для сессии {origin}")
-            
-            # Добавляем заголовки браузера, чтобы сайт не блокировал запросы
-            if hasattr(session, '_session') and hasattr(session._session, 'headers'):
-                session._session.headers.update({
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                    'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-                    'Accept-Encoding': 'gzip, deflate, br',
-                    'Connection': 'keep-alive',
-                    'Upgrade-Insecure-Requests': '1'
-                })
-                logger.info(f"Добавлены заголовки браузера для сессии {origin}")
-            
+            logger.info(f"Создана сессия для {origin} с таймаутом 30 сек и заголовками браузера")
+            logger.debug(f"Прокси в сессии: {session.proxy if hasattr(session, 'proxy') else 'N/A'}")
             self.sessions[origin] = session
-            logger.info(f"Создана сессия для {origin}")
         return self.sessions[origin]
     
     def analyze_content(self, url: str) -> Dict:
