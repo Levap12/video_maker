@@ -72,10 +72,14 @@ class HdRezkaService:
         """Получает или создает сессию HdRezkaSession для указанного URL."""
         origin = self._get_origin_from_url(url)
         if origin not in self.sessions:
-            self.sessions[origin] = HdRezkaSession(
+            # Создаем сессию с таймаутом для прокси
+            session = HdRezkaSession(
                 proxy=self.proxy,
-                origin=origin
+                origin=origin,
+                timeout=30  # Таймаут соединения 30 секунд
             )
+            self.sessions[origin] = session
+            logger.info(f"Создана сессия для {origin} с таймаутом 30 секунд")
         return self.sessions[origin]
     
     def analyze_content(self, url: str) -> Dict:
