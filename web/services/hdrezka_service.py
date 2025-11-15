@@ -90,13 +90,30 @@ class HdRezkaService:
             logger.info(f"Сессия создана для origin: {self._get_origin_from_url(url)}")
             
             logger.info(f"Выполнение session.get({url})...")
-            rezka = session.get(url)
+            try:
+                rezka = session.get(url)
+            except TypeError as te:
+                # HdRezkaApi иногда пытается бросить неправильное исключение
+                logger.error(f"TypeError при session.get: {te}")
+                return {
+                    'success': False,
+                    'error': f'Ошибка при получении страницы (TypeError): {str(te)}'
+                }
+            except Exception as e:
+                # Ловим любые другие исключения от HdRezkaApi
+                logger.error(f"Исключение при session.get: {type(e).__name__}: {e}")
+                return {
+                    'success': False,
+                    'error': f'Ошибка при получении страницы: {str(e)}'
+                }
+            
             logger.info(f"session.get завершен. rezka.ok = {rezka.ok}")
             
             if not rezka.ok:
-                error_msg = str(rezka.exception)
+                error_msg = str(rezka.exception) if hasattr(rezka, 'exception') else 'Неизвестная ошибка'
                 logger.error(f"Ошибка rezka.ok=False: {error_msg}")
-                logger.error(f"Тип исключения: {type(rezka.exception).__name__}")
+                if hasattr(rezka, 'exception'):
+                    logger.error(f"Тип исключения: {type(rezka.exception).__name__}")
                 return {
                     'success': False,
                     'error': error_msg
