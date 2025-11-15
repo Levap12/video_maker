@@ -41,7 +41,22 @@ def start_shorts_creation_task(workflow_id: str, clips_paths: list, sub_task_nam
                 **kwargs
             )
             
+            # Получаем метаданные клипов из подзадачи clipping
+            workflow = task_manager.get_task(workflow_id)
+            clips_metadata = {}  # Маппинг: путь к клипу → метаданные
+            
+            if workflow:
+                # Ищем подзадачу clipping, которая содержит эти клипы
+                for sub_task_name, sub_task in workflow.sub_tasks.items():
+                    if sub_task_name.startswith('clipping_') and sub_task.outputs:
+                        sub_task_clips = sub_task.outputs.get('clips', [])
+                        # Проверяем, что это та же подзадача (содержит те же клипы)
+                        if set(sub_task_clips) == set(clips_paths):
+                            clips_metadata = sub_task.outputs.get('clips_metadata', {})
+                            break
+            
             successful_shorts, failed_clips = [], []
+            shorts_metadata = {}  # Маппинг: путь к Shorts → метаданные
             total_clips = len(clips_paths)
 
             if not total_clips:
@@ -65,14 +80,32 @@ def start_shorts_creation_task(workflow_id: str, clips_paths: list, sub_task_nam
                     output_path = creator.convert_to_shorts_format(clip_path, output_path_target)
                     
                     if output_path and output_path.exists():
-                        successful_shorts.append(str(output_path))
+                        output_path_str = str(output_path)
+                        successful_shorts.append(output_path_str)
+                        
+                        # Сохраняем метаданные для этого Shorts (по пути исходного клипа)
+                        if clip_path_str in clips_metadata:
+                            shorts_metadata[output_path_str] = clips_metadata[clip_path_str]
+                        else:
+                            # Если метаданных нет, создаем минимальный объект
+                            shorts_metadata[output_path_str] = {
+                                'start_time': '',
+                                'end_time': '',
+                                'title': clip_path.stem,
+                                'summary': '',
+                                'full_quote': ''
+                            }
                     else:
                         failed_clips.append(clip_path_str)
                 except Exception as clip_error:
                     failed_clips.append(clip_path_str)
                     print(f"Ошибка при обработке клипа {clip_path_str}: {clip_error}") # Логируем ошибку
 
-            outputs = {'shorts': successful_shorts, 'failed_shorts': failed_clips}
+            outputs = {
+                'shorts': successful_shorts,
+                'failed_shorts': failed_clips,
+                'shorts_metadata': shorts_metadata
+            }
             if not successful_shorts:
                 raise ValueError(f"Не удалось создать ни одного Shorts из {total_clips} клипов.")
 

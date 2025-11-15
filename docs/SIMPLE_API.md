@@ -210,13 +210,27 @@ while True:
       "filename": "clip_001.mp4",
       "url": "/api/files/short/clip_001.mp4",
       "size_mb": 12.5,
-      "duration_seconds": 60.0
+      "duration_seconds": 60.0,
+      "metadata": {
+        "start_time": "00:00:33.080",
+        "end_time": "00:01:34.420",
+        "title": "Снапплз становится умным: начало собачьего бунта",
+        "summary": "Джерри просит Рика сделать собаку Снапплза умнее...",
+        "full_quote": "Считается, что коллекционирование монет..."
+      }
     },
     {
       "filename": "clip_002.mp4",
       "url": "/api/files/short/clip_002.mp4",
       "size_mb": 11.8,
-      "duration_seconds": 58.5
+      "duration_seconds": 58.5,
+      "metadata": {
+        "start_time": "00:02:15.200",
+        "end_time": "00:03:13.700",
+        "title": "Второй клип",
+        "summary": "Описание второго клипа...",
+        "full_quote": "..."
+      }
     }
   ]
 }
@@ -288,6 +302,10 @@ if data.get('success'):
         print(f"  Размер: {video['size_mb']} MB")
         print(f"  Длительность: {video['duration_seconds']} сек")
         print(f"  Скачать: {video['download_url']}")
+        if 'metadata' in video:
+            meta = video['metadata']
+            print(f"  Заголовок: {meta.get('title', 'N/A')}")
+            print(f"  Описание: {meta.get('summary', 'N/A')}")
 ```
 
 #### Ответ (успех)
@@ -302,14 +320,28 @@ if data.get('success'):
       "url": "/api/files/short/clip_001.mp4",
       "download_url": "http://localhost:5000/api/files/short/clip_001.mp4",
       "size_mb": 12.5,
-      "duration_seconds": 60.0
+      "duration_seconds": 60.0,
+      "metadata": {
+        "start_time": "00:00:33.080",
+        "end_time": "00:01:34.420",
+        "title": "Снапплз становится умным: начало собачьего бунта",
+        "summary": "Джерри просит Рика сделать собаку Снапплза умнее...",
+        "full_quote": "Считается, что коллекционирование монет..."
+      }
     },
     {
       "filename": "clip_002.mp4",
       "url": "/api/files/short/clip_002.mp4",
       "download_url": "http://localhost:5000/api/files/short/clip_002.mp4",
       "size_mb": 11.8,
-      "duration_seconds": 58.5
+      "duration_seconds": 58.5,
+      "metadata": {
+        "start_time": "00:02:15.200",
+        "end_time": "00:03:13.700",
+        "title": "Второй клип",
+        "summary": "Описание второго клипа...",
+        "full_quote": "..."
+      }
     }
   ],
   "metadata": {

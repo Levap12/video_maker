@@ -47,7 +47,12 @@ def start_clipping_task(workflow_id: str, video_path: str, clips_data: list, sub
             
             clipper = VideoClipper(output_dir=str(Config.CLIPS_DIR))
             
+            # Загружаем метаданные AI из artifacts для связи с клипами
+            workflow = task_manager.get_task(workflow_id)
+            ai_metadata = workflow.artifacts.get('ai_metadata', []) if workflow else []
+            
             successful_clips = []
+            clips_metadata = {}  # Маппинг: путь к клипу → метаданные
             total_clips = len(clips_data)
             for i, clip_info in enumerate(clips_data):
                 progress = int(((i + 1) / total_clips) * 100)
@@ -71,7 +76,21 @@ def start_clipping_task(workflow_id: str, video_path: str, clips_data: list, sub
                     index=i
                 )
                 if clip_path:
-                    successful_clips.append(str(clip_path))
+                    clip_path_str = str(clip_path)
+                    successful_clips.append(clip_path_str)
+                    
+                    # Сохраняем метаданные для этого клипа (по индексу)
+                    if i < len(ai_metadata):
+                        clips_metadata[clip_path_str] = ai_metadata[i]
+                    else:
+                        # Если метаданных нет, создаем минимальный объект из clip_info
+                        clips_metadata[clip_path_str] = {
+                            'start_time': clip_info.get('start', ''),
+                            'end_time': clip_info.get('end', ''),
+                            'title': clip_info.get('title', ''),
+                            'summary': clip_info.get('caption', ''),
+                            'full_quote': clip_info.get('caption', '')
+                        }
             
             if not successful_clips:
                 raise ValueError("Не удалось создать ни одного клипа")
@@ -83,7 +102,10 @@ def start_clipping_task(workflow_id: str, video_path: str, clips_data: list, sub
                 status=TaskStatus.COMPLETED,
                 progress=100,
                 message=f"Нарезано {len(successful_clips)} клипов",
-                outputs={'clips': successful_clips}
+                outputs={
+                    'clips': successful_clips,
+                    'clips_metadata': clips_metadata
+                }
             )
             
             # Проверяем auto_mode и пытаемся продолжить workflow

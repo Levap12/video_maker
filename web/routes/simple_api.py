@@ -284,6 +284,8 @@ def collect_ready_videos(workflow: WorkflowTask) -> List[Dict]:
     for task_name, shorts_task in shorts_tasks:
         if shorts_task.status == TaskStatus.COMPLETED and shorts_task.outputs:
             shorts_paths = shorts_task.outputs.get('shorts', [])
+            shorts_metadata = shorts_task.outputs.get('shorts_metadata', {})
+            
             for short_path in shorts_paths:
                 short_file = Path(short_path)
                 if short_file.exists():
@@ -298,12 +300,22 @@ def collect_ready_videos(workflow: WorkflowTask) -> List[Dict]:
                     except:
                         pass
                     
-                    videos.append({
+                    video_obj = {
                         'filename': short_file.name,
                         'url': f'/api/files/short/{short_file.name}',
                         'size_mb': round(size_mb, 2),
                         'duration_seconds': round(duration, 1) if duration else None
-                    })
+                    }
+                    
+                    # Добавляем метаданные, если они есть
+                    short_path_str = str(short_path)
+                    if short_path_str in shorts_metadata:
+                        video_obj['metadata'] = shorts_metadata[short_path_str]
+                    elif short_file.name in shorts_metadata:
+                        # Пробуем найти по имени файла (на случай разных форматов путей)
+                        video_obj['metadata'] = shorts_metadata[short_file.name]
+                    
+                    videos.append(video_obj)
     
     return videos
 
@@ -470,6 +482,19 @@ def _generate_ai_clips_direct(task_id: str, system_prompt_id: str, user_prompt_i
         raise Exception(ai_result.get('error', 'Неизвестная ошибка от AI сервиса'))
     
     clips_data = ai_result['clips']
+    
+    # Нормализуем формат: если это словарь с ключом 'clips', извлекаем список
+    if isinstance(clips_data, dict) and 'clips' in clips_data:
+        normalized_clips = clips_data['clips']
+    elif isinstance(clips_data, list):
+        normalized_clips = clips_data
+    else:
+        normalized_clips = []
+    
+    # Сохраняем метаданные AI в artifacts для использования на последующих этапах
+    task_manager.update_workflow_artifacts(task_id, {'ai_metadata': normalized_clips})
+    logger.info(f"[{task_id}] Сохранено {len(normalized_clips)} метаданных клипов в artifacts")
+    
     ai_clips_dir = Config.DATA_DIR / 'ai_clips'
     ai_clips_dir.mkdir(exist_ok=True)
     
