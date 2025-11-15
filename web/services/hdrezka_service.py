@@ -117,7 +117,12 @@ class HdRezkaService:
             
             rezka_type_str = str(rezka.type) if rezka.type else ''
             if rezka_type_str in ['tv_series', 'TVSeries'] or 'series' in rezka_type_str.lower() or rezka.type == TVSeries:
+                logger.info(f"Начало извлечения информации о сезонах/эпизодах...")
+                import time
+                start_time = time.time()
                 series_info = self._extract_series_info_from_api(rezka)
+                elapsed = time.time() - start_time
+                logger.info(f"Извлечение информации о сезонах завершено за {elapsed:.2f} секунд")
                 result['series_info'] = series_info if series_info else {}
             
             logger.info(f"Анализ контента завершен успешно")
@@ -155,7 +160,9 @@ class HdRezkaService:
         """
         series_info = {}
         try:
+            logger.debug("Проверка hasattr(rezka, 'episodesInfo')...")
             if hasattr(rezka, 'episodesInfo') and rezka.episodesInfo:
+                logger.debug(f"episodesInfo найден, длина: {len(rezka.episodesInfo) if rezka.episodesInfo else 0}")
                 for season_data in rezka.episodesInfo:
                     if isinstance(season_data, dict):
                         season_num = season_data.get('season')
@@ -169,9 +176,12 @@ class HdRezkaService:
                                     'episode_list': list(range(1, max_episode + 1))
                                 }
                 if series_info:
+                    logger.debug(f"seriesInfo извлечен из episodesInfo: {len(series_info)} сезонов")
                     return series_info
 
+            logger.debug("Проверка hasattr(rezka, 'seriesInfo')...")
             if hasattr(rezka, 'seriesInfo') and rezka.seriesInfo:
+                logger.debug(f"seriesInfo найден, количество переводов: {len(rezka.seriesInfo) if rezka.seriesInfo else 0}")
                 seasons_data = {}
                 for translator_info in rezka.seriesInfo.values():
                     if isinstance(translator_info, dict):
@@ -195,9 +205,11 @@ class HdRezkaService:
                             'episode_list': list(range(1, max_episode + 1))
                         }
                 if series_info:
+                    logger.debug(f"seriesInfo извлечен: {len(series_info)} сезонов")
                     return series_info
 
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Ошибка при извлечении seriesInfo: {e}")
             return {}
             
         return series_info

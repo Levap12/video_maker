@@ -48,15 +48,17 @@ def start_initial_processing_task(task_id: str, url: str, proxy: str = None,
             
             content_info = None
             try:
-                logger.info(f"[{task_id}] Начало анализа контента с таймаутом 60 секунд...")
+                # Увеличиваем таймаут до 180 секунд (3 минуты), так как извлечение информации о сезонах может занимать много времени
+                timeout_seconds = 180
+                logger.info(f"[{task_id}] Начало анализа контента с таймаутом {timeout_seconds} секунд...")
                 with ThreadPoolExecutor(max_workers=1) as executor:
                     future = executor.submit(service.analyze_content, url)
                     try:
-                        content_info = future.result(timeout=60)
+                        content_info = future.result(timeout=timeout_seconds)
                         logger.info(f"[{task_id}] Анализ контента завершен успешно")
                     except FuturesTimeoutError:
-                        logger.error(f"[{task_id}] Таймаут анализа контента (60 секунд)")
-                        raise TimeoutError("Анализ контента занял более 60 секунд.")
+                        logger.error(f"[{task_id}] Таймаут анализа контента ({timeout_seconds} секунд)")
+                        raise TimeoutError(f"Анализ контента занял более {timeout_seconds} секунд.")
             except Exception as e:
                 logger.exception(f"[{task_id}] Ошибка при анализе контента: {e}")
                 raise
